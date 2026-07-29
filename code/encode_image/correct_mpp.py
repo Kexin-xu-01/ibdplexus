@@ -3,9 +3,10 @@ import pandas as pd
 from pathlib import Path
 import shutil
 
-TSV_PATH   = "/alan-data/jinc/share/repo/kexin/ibdplexus/data/vsi_metadata.tsv"
-INPUT_DIR  = Path("/alan-data/jinc/share/data/ibd_clean_xavier/sparc-image-ffp/all_wsi_tiff")
-OUTPUT_DIR = Path("/alan-data/jinc/share/repo/kexin/ibdplexus/data/raw/tiff_mpp_corrected")
+TSV_PATH   = "/home/jovyan/ibdplexus/data/vsi_metadata.tsv"
+INPUT_DIR  = Path("/home/jovyan/shared-data/ibd_plexus_sparc_raw/image/all_wsi_tiff")
+OUTPUT_DIR = Path("/home/jovyan/ibdplexus/data/raw/tiff_mpp_corrected")
+OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected")
 
 df = pd.read_csv(TSV_PATH, sep='\t')
 df_slides = df[(df['is_overview'] == 0) & (df['num_scenes'] == 1)].reset_index(drop=True)
@@ -85,7 +86,7 @@ def inspect_and_fix(row, dry_run=False):
 
     # Copy byte-for-byte, then patch only the 3 resolution tags in-place.
     # No pixel decompression — preserves JPEG compression quality exactly.
-    shutil.copy2(str(src), str(dst))
+    shutil.copyfile(str(src), str(dst))
     try:
         with open(str(dst), 'r+b') as f:
             with tifffile.TiffFile(f) as tif:
