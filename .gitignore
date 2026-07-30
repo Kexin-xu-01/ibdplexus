@@ -11,3 +11,7 @@ nohup.out
 data/
 models/
 *.out
+
+# SSH keys
+code/git
+code/git.pub

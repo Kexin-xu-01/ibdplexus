@@ -3,13 +3,17 @@ import pandas as pd
 from pathlib import Path
 import shutil
 
-TSV_PATH   = "/home/jovyan/ibdplexus/data/vsi_metadata.tsv"
+TSV_PATH   = "/home/jovyan/shared-data/users/kexin/vsi_metadata.tsv"
 INPUT_DIR  = Path("/home/jovyan/shared-data/ibd_plexus_sparc_raw/image/all_wsi_tiff")
-OUTPUT_DIR = Path("/home/jovyan/ibdplexus/data/raw/tiff_mpp_corrected")
-OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected")
+OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
 
 df = pd.read_csv(TSV_PATH, sep='\t')
 df_slides = df[(df['is_overview'] == 0) & (df['num_scenes'] == 1)].reset_index(drop=True)
+
+# Skip slides already corrected
+already_done = set(p.stem for p in OUTPUT_DIR.glob('*.tif*'))
+df_slides = df_slides[~df_slides['slide_id'].isin(already_done)].reset_index(drop=True)
+print(f"Already done: {len(already_done)} | Remaining: {len(df_slides)}")
 
 # Audit accessibility — os.access() lies on NFS+ACL, so actually try to open
 accessible, missing, denied = [], [], []
@@ -55,6 +59,9 @@ def inspect_and_fix(row, dry_run=False):
 
     try:
         with tifffile.TiffFile(str(src)) as tif:
+            if not tif.pages:
+                print(f"  [SKIP] {sid} — empty/corrupt TIFF (no pages)")
+                return
             p = tif.pages[0]
             h, w = p.shape[:2]
             tsv_w, tsv_h = int(row['width_px']), int(row['height_px'])
@@ -103,7 +110,9 @@ def inspect_and_fix(row, dry_run=False):
     print(f"  [DONE] -> {dst}")
 
 
-# --- test on first 3 accessible slides ---
-test_rows = df_slides[df_slides['slide_id'].isin(accessible)].head(3)
-for _, row in test_rows.iterrows():
+from tqdm import tqdm
+
+all_rows = df_slides[df_slides['slide_id'].isin(accessible)]
+print(f"\nProcessing {len(all_rows)} slides...")
+for _, row in tqdm(all_rows.iterrows(), total=len(all_rows)):
     inspect_and_fix(row, dry_run=False)
