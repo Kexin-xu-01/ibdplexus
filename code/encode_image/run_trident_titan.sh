@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export HF_MODULES_CACHE=/home/jovyan/shared-data/users/kexin/models/histology/hf_modules
+
 /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python /home/jovyan/shared-data/users/kexin/models/trident/run_batch_of_slides.py \
     --task all \
     --wsi_dir /home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected \

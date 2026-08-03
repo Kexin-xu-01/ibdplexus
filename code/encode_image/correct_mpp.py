@@ -5,7 +5,7 @@ import shutil
 
 TSV_PATH   = "/home/jovyan/shared-data/users/kexin/vsi_metadata.tsv"
 INPUT_DIR  = Path("/home/jovyan/shared-data/ibd_plexus_sparc_raw/image/all_wsi_tiff")
-OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
+OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected")
 
 df = pd.read_csv(TSV_PATH, sep='\t')
 df_slides = df[(df['is_overview'] == 0) & (df['num_scenes'] == 1)].reset_index(drop=True)
