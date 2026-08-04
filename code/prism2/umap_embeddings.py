@@ -11,7 +11,7 @@ Outputs one interactive HTML per embedding type, each with a colour
 dropdown across: diagnosis, disease_activity, disease_location,
 macroscopic_appearance, crohn_phenotype, gender.
 
-Outputs: /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/
+Outputs: /home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap/
 """
 
 import argparse
@@ -29,12 +29,12 @@ from sklearn.preprocessing import StandardScaler
 
 # ── paths ──────────────────────────────────────────────────────────────────
 EMBED_DIRS = {
-    "prism2_base": Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_base"),
-    "prism2_diagnostic": Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_diagnostic"),
-    "titan": Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_512px_0px_overlap/slide_features_titan"),
+    "prism2_base": Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/prism2_base"),
+    "prism2_diagnostic": Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/prism2_diagnostic"),
+    "titan": Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_512px_0px_overlap/slide_features_titan"),
 }
 OMICS_CSV   = Path("/home/jovyan/shared-data/ibd_plexus_sparc_processed/omics_samples.csv")
-OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
+OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap")
 
 # ── categorical colour palettes (CVD-safe, fixed order) ────────────────────
 # Validated against WCAG / OKLab ΔE ≥ 8 between adjacent pairs

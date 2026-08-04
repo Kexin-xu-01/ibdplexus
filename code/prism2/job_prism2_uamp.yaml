@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-embeddings
+  name: kgbk271-prism2-uamp
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,9 +36,9 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/encode_image/run_prism2.py \
+                /home/jovyan/ibdplexus/code/prism2/run_prism2_uamp.py \
                 --gpu 0 \
-                --batch_size 8 \
+                --batch_size 4 \
                 --skip_errors
           resources:
             requests:

@@ -11,8 +11,8 @@ import csv
 import json
 from pathlib import Path
 
-REPORTS_DIR = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/reports")
-OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2")
+REPORTS_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/reports")
+OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2")
 
 
 def prompt_slug(prompt: str) -> str:

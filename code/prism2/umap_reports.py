@@ -1,19 +1,21 @@
 """
 Extract categorical variables from PRISM2 free-text reports and plot
 them on the prism2_diagnostic UMAP (reusing cached coordinates).
+Also adds UAMP yes/no P(Yes) scores (continuous, sequential colour scale).
 
 Report-extracted variables:
   report_tissue, report_inflammation, report_finding,
   report_active_inflam, report_granuloma, report_dysplasia,
   report_crypt_injury, report_h_pylori
 
+UAMP yes/no scores (P(Yes), 0–1 continuous):
+  inflammation_involvement, crypt_architectural_distortion,
+  neutrophil_granulocytic_infiltration, crypt_abscesses, lymphoid_aggregates,
+  histiocytic_granulomas, mucin_depletion, pyloric_gland_metaplasia,
+  paneth_cell_metaplasia, neuronal_hyperplasia, muscular_hypertrophy
+
 Ground-truth variables added to HTML dropdown:
   diagnosis, normal_lesional, macroscopic_appearance, disease_activity_60, tissue_site
-
-Side-by-side comparison plots (report vs ground truth, same colour scale):
-  report_active_inflam  vs  normal_lesional
-  report_tissue         vs  tissue_site
-  report_finding        vs  macroscopic_appearance
 
 Outputs:
   results/prism2/umap/umap_prism2_diagnostic_reports.html
@@ -32,13 +34,31 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-JSONL_PATH = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_reports.jsonl")
-COORDS_NPZ = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/umap_prism2_diagnostic_coords.npz")
-META_CSV   = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_metadata.csv")
-OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
-COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/compare")
-META_OUT   = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_report_features.csv")
-PROMPT     = "write a report"
+JSONL_PATH  = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/prism2_reports.jsonl")
+COORDS_NPZ  = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap/umap_prism2_diagnostic_coords.npz")
+META_CSV    = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/metadata/slide_metadata.csv")
+UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/prism2_reports.csv")
+OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap")
+COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap/compare")
+META_OUT    = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/metadata/slide_report_features.csv")
+PROMPT      = "write a report"
+
+# UAMP P(Yes) columns — continuous 0–1, shown with sequential colour scale
+UAMP_COLS = [
+    "inflammation_involvement",
+    "crypt_architectural_distortion",
+    "neutrophil_granulocytic_infiltration",
+    "crypt_abscesses",
+    "lymphoid_aggregates",
+    "histiocytic_granulomas",
+    "mucin_depletion",
+    "pyloric_gland_metaplasia",
+    "paneth_cell_metaplasia",
+    "neuronal_hyperplasia",
+    "muscular_hypertrophy",
+]
+
+UAMP_TITLES = {c: c.replace("_", " ").title() + " (UAMP P(Yes))" for c in UAMP_COLS}
 
 # ── palettes ───────────────────────────────────────────────────────────────
 # Report-extracted
@@ -270,6 +290,44 @@ def load_report_features() -> pd.DataFrame:
 
 # ── HTML (interactive, dropdown) ──────────────────────────────────────────
 
+def _build_continuous_trace(df: pd.DataFrame, col: str, title: str) -> list:
+    """Single Scattergl trace with a continuous Viridis colour scale for P(Yes) scores."""
+    mask = df[col].notna()
+    sub = df[mask]
+    if sub.empty:
+        return []
+    trace = go.Scattergl(
+        x=sub["umap_x"], y=sub["umap_y"],
+        mode="markers",
+        name=title,
+        marker=dict(
+            color=sub[col],
+            colorscale="Viridis",
+            cmin=0, cmax=1,
+            size=5, opacity=0.85,
+            line=dict(width=0.3, color="rgba(255,255,255,0.2)"),
+            colorbar=dict(
+                title=dict(text="P(Yes)", side="right"),
+                thickness=14, len=0.7,
+                tickvals=[0, 0.25, 0.5, 0.75, 1.0],
+                ticktext=["0", "0.25", "0.5", "0.75", "1"],
+            ),
+            showscale=True,
+        ),
+        text=sub.apply(lambda r: (
+            f"<b>{r.name}</b><br>"
+            f"{title}: <b>{r[col]:.3f}</b><br>"
+            f"Diagnosis [GT]: {r.get('diagnosis','?')}<br>"
+            f"Normal/Lesional [GT]: {r.get('normal_lesional','?')}<br>"
+            f"Tissue site [GT]: {r.get('tissue_site','?')}<br>"
+            f"Disease activity [GT]: {r.get('disease_activity_60','?')}"
+        ), axis=1),
+        hovertemplate="%{text}<extra></extra>",
+        visible=False,
+    )
+    return [trace]
+
+
 def _build_traces(df: pd.DataFrame, col: str, palette: dict) -> list:
     traces = []
     order = [k for k in palette if k != "Unknown"] + ["Unknown"]
@@ -303,34 +361,48 @@ def _build_traces(df: pd.DataFrame, col: str, palette: dict) -> list:
 
 
 def make_html(df: pd.DataFrame, out_path: Path):
-    # Order: report vars first, then GT vars
+    # Order: report vars, GT vars, then UAMP continuous
     color_vars = list(REPORT_PALETTES.keys()) + list(GT_PALETTES.keys())
     all_groups = [(col, _build_traces(df, col, ALL_PALETTES[col])) for col in color_vars]
 
+    # Add UAMP continuous groups (only for slides that have scores)
+    uamp_present = [c for c in UAMP_COLS if c in df.columns and df[c].notna().any()]
+    uamp_groups = [(col, _build_continuous_trace(df, col, UAMP_TITLES[col]))
+                   for col in uamp_present]
+
+    all_groups_combined = all_groups + uamp_groups
+
     fig = go.Figure()
-    for _, traces in all_groups:
+    for _, traces in all_groups_combined:
         for t in traces:
             t.visible = False
             fig.add_trace(t)
-    for t in all_groups[0][1]:
+    for t in all_groups_combined[0][1]:
         t.visible = True
 
-    flat = [t for _, trs in all_groups for t in trs]
+    flat = [t for _, trs in all_groups_combined for t in trs]
     buttons, cum = [], 0
-    for col, traces in all_groups:
+    for col, traces in all_groups_combined:
+        if col in LABEL_TITLES:
+            label = LABEL_TITLES[col]
+        else:
+            label = UAMP_TITLES.get(col, col)
         vis = [False] * len(flat)
         for j in range(cum, cum + len(traces)):
             vis[j] = True
         buttons.append(dict(
-            label=LABEL_TITLES[col], method="update",
+            label=label, method="update",
             args=[{"visible": vis},
-                  {"title": f"PRISM2 Diagnostic UMAP — {LABEL_TITLES[col]}"}],
+                  {"title": f"PRISM2 Diagnostic UMAP — {label}"}],
         ))
         cum += len(traces)
 
-    # Separator button between report and GT sections
-    sep_idx = len(REPORT_PALETTES)
-    buttons.insert(sep_idx, dict(label="── Ground Truth ──", method="skip", args=[]))
+    # Separators between sections
+    sep_gt = len(REPORT_PALETTES)
+    sep_uamp = len(REPORT_PALETTES) + len(GT_PALETTES)
+    buttons.insert(sep_gt, dict(label="── Ground Truth ──", method="skip", args=[]))
+    if uamp_groups:
+        buttons.insert(sep_uamp + 1, dict(label="── UAMP Scores ──", method="skip", args=[]))
 
     fig.update_layout(
         title=dict(text=f"PRISM2 Diagnostic UMAP — {LABEL_TITLES[color_vars[0]]}",
@@ -476,6 +548,17 @@ def main():
     df = coord_df.join(feat_df, how="inner").join(meta[gt_cols], how="left")
     for col in ALL_PALETTES:
         df[col] = df[col].fillna("Unknown").astype(str).replace("nan", "Unknown")
+
+    # Join UAMP P(Yes) scores (left join — NaN for slides not yet scored)
+    if UAMP_CSV.exists():
+        uamp = pd.read_csv(UAMP_CSV, index_col="slide")
+        uamp.index.name = "slide_id"
+        available = [c for c in UAMP_COLS if c in uamp.columns]
+        df = df.join(uamp[available], how="left")
+        n_uamp = df[UAMP_COLS[0]].notna().sum()
+        print(f"  Joined UAMP scores for {n_uamp}/{len(df)} slides")
+    else:
+        print(f"  UAMP CSV not found at {UAMP_CSV}, skipping")
 
     print(f"  {len(df)} slides total")
 

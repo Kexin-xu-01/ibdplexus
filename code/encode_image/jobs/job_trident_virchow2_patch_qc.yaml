@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-embeddings
+  name: kgbk271-trident-virchow2-patch-qc
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -29,17 +29,26 @@ spec:
             medium: Memory
             sizeLimit: 16Gi
       containers:
-        - name: prism2
+        - name: trident-virchow2-patch-qc
           image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
           command:
             - /bin/bash
             - -c
             - |
-              /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/encode_image/run_prism2.py \
-                --gpu 0 \
-                --batch_size 8 \
-                --skip_errors
+              /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
+                /home/jovyan/shared-data/users/kexin/models/trident/run_batch_of_slides.py \
+                --task all \
+                --wsi_dir /home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected \
+                --job_dir /home/jovyan/kgbk271-ibd-volume/data/processed/patch_qc/trident_processed \
+                --patch_encoder virchow2 \
+                --mag 20 \
+                --patch_size 224 \
+                --segmenter hest \
+                --remove_artifacts \
+                --min_tissue_proportion 0.15 \
+                --gpus 0 \
+                --skip_errors \
+                --clear_dead_locks
           resources:
             requests:
               cpu: "8"

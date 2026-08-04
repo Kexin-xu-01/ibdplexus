@@ -78,7 +78,7 @@ spec:
             - name: dshm
               mountPath: /dev/shm
             - name: kgbk271-ibd-volume
-              mountPath: /home/jovyan/kgbk271-ibd-volume
+              mountPath: /home/jovyan/kgbk271-ibd-datavol-1
             - name: shared-data
               mountPath: /home/jovyan/shared-data
             - name: kgbk271-ibd-workspace
