@@ -38,9 +38,9 @@ from transformers import AutoModel, AutoProcessor
 VIRCHOW2_DIM    = 2560
 CLASS_TOKEN_DIM = 1280
 
-FEAT_DIR     = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
+FEAT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
 MODEL_PATH   = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
-RESULTS_ROOT = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2")
+RESULTS_ROOT = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2")
 
 
 def parse_args():
@@ -114,7 +114,7 @@ def main():
         out_dir = Path(args.out_dir)
     else:
         tag = "yesno" if args.yes_no else "reports"
-        out_dir = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2") / tag / prompt_slug(args.prompt)
+        out_dir = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2") / tag / prompt_slug(args.prompt)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading PRISM2 from {MODEL_PATH} ...")

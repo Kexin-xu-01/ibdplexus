@@ -15,7 +15,7 @@ import slideio
 import tifffile
 from tqdm import tqdm
 
-OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected")
+OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
 VSI_ROOT   = Path("/home/jovyan/shared-data/S3-raw-data-Jul-2026/sparc-image-ffpe")
 ALL_WSI    = Path("/home/jovyan/shared-data/ibd_plexus_sparc_raw/image/all_wsi_tiff")
 TILE_SIZE  = 256

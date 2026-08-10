@@ -1,0 +1,129 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kgbk271-tissue-threshold-15
+  namespace: ibd-plexus-research
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: default-editor
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: GPU_workload
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: kgbk271-ibd-volume
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-volume
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
+        - name: kgbk271-ibd-workspace
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-workspace
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+      containers:
+        - name: tissue-threshold-15
+          image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              JOB_DIR=/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15
+              SRC_DIR=/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed
+              WSI_DIR=/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected
+              TRIDENT=/home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python
+              SCRIPT=/home/jovyan/shared-data/users/kexin/models/trident/run_batch_of_slides.py
+              PRISM2=/home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python
+              PRISM2_SCRIPT=/home/jovyan/ibdplexus/code/encode_image/run_prism2.py
+
+              echo "=== Stage 0: prepare job_dir ==="
+              mkdir -p "$JOB_DIR"
+              # Reuse existing segmentation outputs (no re-segmentation)
+              for d in contours_geojson contours thumbnails; do
+                ln -sfn "$SRC_DIR/$d" "$JOB_DIR/$d"
+              done
+              # Copy segmentation config/log so trident sees a valid seg state
+              cp -n "$SRC_DIR/_config_segmentation.json" "$JOB_DIR/_config_segmentation.json" 2>/dev/null || true
+              cp -n "$SRC_DIR/_logs_segmentation.txt"    "$JOB_DIR/_logs_segmentation.txt"    2>/dev/null || true
+              # Copy per-slide wsi_states so trident knows seg is done
+              mkdir -p "$JOB_DIR/wsi_states"
+              cp -rn "$SRC_DIR/wsi_states/." "$JOB_DIR/wsi_states/" 2>/dev/null || true
+
+              echo "=== Stage 1: extract patch coords (min_tissue_proportion 0.15) ==="
+              $TRIDENT $SCRIPT \
+                --task coords \
+                --wsi_dir "$WSI_DIR" \
+                --job_dir "$JOB_DIR" \
+                --mag 20 \
+                --patch_size 224 \
+                --min_tissue_proportion 0.15 \
+                --gpus 0 \
+                --skip_errors \
+                --clear_dead_locks
+
+              echo "=== Stage 2: extract virchow2 patch features ==="
+              $TRIDENT $SCRIPT \
+                --task feat \
+                --wsi_dir "$WSI_DIR" \
+                --job_dir "$JOB_DIR" \
+                --patch_encoder virchow2 \
+                --mag 20 \
+                --patch_size 224 \
+                --gpus 0 \
+                --skip_errors \
+                --clear_dead_locks
+
+              echo "=== Stage 3: extract prism2_base and prism2_diagnostic embeddings ==="
+              $PRISM2 $PRISM2_SCRIPT \
+                --job_dir "$JOB_DIR" \
+                --batch_size 8 \
+                --gpu 0 \
+                --skip_errors
+
+              echo "=== Done ==="
+          resources:
+            requests:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+          env:
+            - name: http_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: https_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: no_proxy
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
+            - name: HF_HOME
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: HF_HUB_CACHE
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: TRANSFORMERS_CACHE
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: TRANSFORMERS_OFFLINE
+              value: "1"
+            - name: HF_DATASETS_OFFLINE
+              value: "1"
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: kgbk271-ibd-volume
+              mountPath: /home/jovyan/kgbk271-ibd-volume
+            - name: shared-data
+              mountPath: /home/jovyan/shared-data
+            - name: kgbk271-ibd-workspace
+              mountPath: /home/jovyan

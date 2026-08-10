@@ -34,13 +34,13 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-JSONL_PATH  = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/prism2_reports.jsonl")
-COORDS_NPZ  = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap/umap_prism2_diagnostic_coords.npz")
-META_CSV    = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/metadata/slide_metadata.csv")
-UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/prism2_reports.csv")
-OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap")
-COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/prism2/umap/compare")
-META_OUT    = Path("/home/jovyan/kgbk271-ibd-datavol-1/results/metadata/slide_report_features.csv")
+JSONL_PATH  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_reports.jsonl")
+COORDS_NPZ  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/umap_prism2_diagnostic_coords.npz")
+META_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_metadata.csv")
+UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_reports.csv")
+OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
+COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/compare")
+META_OUT    = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_report_features.csv")
 PROMPT      = "write a report"
 
 # UAMP P(Yes) columns — continuous 0–1, shown with sequential colour scale

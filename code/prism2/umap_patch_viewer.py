@@ -32,8 +32,8 @@ from PIL import Image
 from sklearn.decomposition import PCA
 from umap import UMAP
 
-FEAT_DIR  = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
-TIFF_DIR  = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected")
+FEAT_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
+TIFF_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
 OUT_DIR   = Path("/home/jovyan/results/umap_patch_viewer")
 PATCH_PX  = 672   # patch footprint in full-res pixels (page 0)
 PYRLEVEL  = 1     # pyramid level to read (1 = 2× downsampled; faster than page 0)

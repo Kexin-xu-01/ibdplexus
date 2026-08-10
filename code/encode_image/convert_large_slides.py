@@ -22,7 +22,7 @@ import slideio
 import tifffile
 from tqdm import tqdm
 
-OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected")
+OUTPUT_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
 TILE_SIZE  = 256
 STRIP_ROWS = 4096  # read this many rows at a time from VSI
 

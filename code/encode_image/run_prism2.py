@@ -37,14 +37,15 @@ from transformers import AutoModel, AutoProcessor
 VIRCHOW2_DIM   = 2560
 CLASS_TOKEN_DIM = 1280   # first half of Virchow2's 2560-dim output
 
-FEAT_DIR   = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
-OUT_BASE   = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/prism2_base")
-OUT_DIAG   = Path("/home/jovyan/kgbk271-ibd-datavol-1/data/processed/trident_processed/20x_224px_0px_overlap/prism2_diagnostic")
-MODEL_PATH = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
+DEFAULT_JOB_DIR = "/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed"
+MODEL_PATH      = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
+CDIR            = "20x_224px_0px_overlap"
 
 
 def parse_args():
     p = argparse.ArgumentParser()
+    p.add_argument("--job_dir", type=str, default=DEFAULT_JOB_DIR,
+                   help="TRIDENT job_dir containing 20x_224px_0px_overlap/features_virchow2/")
     p.add_argument("--batch_size", type=int, default=8,
                    help="Slides per forward pass. Reduce if OOM.")
     p.add_argument("--gpu", type=int, default=0)
@@ -75,6 +76,11 @@ def main():
     args = parse_args()
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+
+    cdir     = Path(args.job_dir) / CDIR
+    FEAT_DIR = cdir / "features_virchow2"
+    OUT_BASE = cdir / "prism2_base"
+    OUT_DIAG = cdir / "prism2_diagnostic"
 
     OUT_BASE.mkdir(parents=True, exist_ok=True)
     OUT_DIAG.mkdir(parents=True, exist_ok=True)

@@ -20,7 +20,7 @@ import slideio
 import tifffile
 
 TILE_SIZE = 256
-OUTPUT_DIR = "/home/jovyan/kgbk271-ibd-datavol-1/data/raw/tiff_mpp_corrected"
+OUTPUT_DIR = "/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected"
 
 SLIDES = [
     {
