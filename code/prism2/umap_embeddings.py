@@ -28,10 +28,13 @@ import umap
 from sklearn.preprocessing import StandardScaler
 
 # ── paths ──────────────────────────────────────────────────────────────────
+DEFAULT_JOB_DIR = "/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed"
+DEFAULT_CDIR    = "20x_224px_0px_overlap"
+
 EMBED_DIRS = {
-    "prism2_base": Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_base"),
-    "prism2_diagnostic": Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_diagnostic"),
-    "titan": Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_512px_0px_overlap/slide_features_titan"),
+    "prism2_base": Path(DEFAULT_JOB_DIR) / DEFAULT_CDIR / "prism2_base",
+    "prism2_diagnostic": Path(DEFAULT_JOB_DIR) / DEFAULT_CDIR / "prism2_diagnostic",
+    "titan": Path(DEFAULT_JOB_DIR) / "20x_512px_0px_overlap" / "slide_features_titan",
 }
 OMICS_CSV   = Path("/home/jovyan/shared-data/ibd_plexus_sparc_processed/omics_samples.csv")
 OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
@@ -472,9 +475,12 @@ def save_static(slides: list[str], xy: np.ndarray, meta: pd.DataFrame,
 
 def parse_args():
     p = argparse.ArgumentParser()
+    p.add_argument("--job_dir", type=str, default=DEFAULT_JOB_DIR,
+                   help="TRIDENT job_dir containing 20x_224px_0px_overlap/prism2_{base,diagnostic}/")
+    p.add_argument("--out_dir", type=str, default=None,
+                   help="Output directory for HTML/PNG/PDF (default: <job_dir>/../../results/prism2/umap)")
     p.add_argument("--embeddings", nargs="+",
-                   default=["prism2_base", "prism2_diagnostic", "titan"],
-                   choices=list(EMBED_DIRS.keys()),
+                   default=["prism2_base", "prism2_diagnostic"],
                    help="Which embedding types to visualise")
     p.add_argument("--n_neighbors", type=int, default=30)
     p.add_argument("--min_dist",    type=float, default=0.25)
@@ -483,16 +489,26 @@ def parse_args():
 
 def main():
     args = parse_args()
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    cdir = Path(args.job_dir) / DEFAULT_CDIR
+    embed_dirs = {
+        "prism2_base":       cdir / "prism2_base",
+        "prism2_diagnostic": cdir / "prism2_diagnostic",
+        "titan":             Path(args.job_dir) / "20x_512px_0px_overlap" / "slide_features_titan",
+    }
+
+    out_dir = Path(args.out_dir) if args.out_dir else \
+              Path(args.job_dir).parent.parent / "results" / "prism2" / "umap" / Path(args.job_dir).name
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     print("Loading metadata ...")
     meta = load_metadata()
     print(f"  {len(meta)} slides with clinical metadata")
 
     for name in args.embeddings:
-        embed_dir = EMBED_DIRS[name]
-        if not embed_dir.exists():
-            print(f"[SKIP] {name}: directory not found")
+        embed_dir = embed_dirs.get(name)
+        if embed_dir is None or not embed_dir.exists():
+            print(f"[SKIP] {name}: directory not found ({embed_dir})")
             continue
 
         print(f"\n── {name} ──")
@@ -501,17 +517,16 @@ def main():
 
         xy = run_umap(X, n_neighbors=args.n_neighbors, min_dist=args.min_dist)
 
-        # Cache UMAP coordinates so re-runs skip the slow step
-        cache_path = OUT_DIR / f"umap_{name}_coords.npz"
+        cache_path = out_dir / f"umap_{name}_coords.npz"
         np.savez(cache_path, slides=np.array(slides), xy=xy)
 
-        out_path = OUT_DIR / f"umap_{name}.html"
+        out_path = out_dir / f"umap_{name}.html"
         make_html(slides, xy, meta, name, out_path)
 
         print(f"  Saving static PNG/PDF ...")
-        save_static(slides, xy, meta, name, OUT_DIR)
+        save_static(slides, xy, meta, name, out_dir)
 
-    print(f"\nDone. Outputs in {OUT_DIR}")
+    print(f"\nDone. Outputs in {out_dir}")
 
 
 if __name__ == "__main__":
