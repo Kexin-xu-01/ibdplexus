@@ -32,9 +32,9 @@ from PIL import Image
 from sklearn.decomposition import PCA
 from umap import UMAP
 
-FEAT_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
+DEFAULT_FEAT_DIR = "/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2"
 TIFF_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
-OUT_DIR   = Path("/home/jovyan/results/umap_patch_viewer")
+OUT_DIR   = Path("/home/jovyan/kgbk271-ibd-volume/results/umap_patch_viewer")
 PATCH_PX  = 672   # patch footprint in full-res pixels (page 0)
 PYRLEVEL  = 1     # pyramid level to read (1 = 2× downsampled; faster than page 0)
 PYRDIV    = 2     # divisor matching PYRLEVEL
@@ -43,6 +43,8 @@ THUMB_PX  = 224   # thumbnail size for hover/panel
 
 def parse_args():
     p = argparse.ArgumentParser()
+    p.add_argument("--feat_dir", type=str, default=DEFAULT_FEAT_DIR,
+                   help="Directory containing per-slide virchow2 .h5 files.")
     p.add_argument("--slides", nargs="+", default=None,
                    help="Slide stems to process (without .h5/.tiff). Default: first --n_slides.")
     p.add_argument("--n_slides", type=int, default=5,
@@ -259,7 +261,7 @@ def build_html(slide: str, umap_xy: np.ndarray, coords: np.ndarray,
 
 
 def process_slide(slide: str, args, out_dir: Path):
-    h5_path   = FEAT_DIR / f"{slide}.h5"
+    h5_path   = Path(args.feat_dir) / f"{slide}.h5"
     tiff_path = TIFF_DIR / f"{slide}.tiff"
     out_path  = out_dir / f"{slide}_umap.html"
 
@@ -306,7 +308,7 @@ def main():
     if args.slides:
         slides = args.slides
     else:
-        all_h5 = sorted(FEAT_DIR.glob("*.h5"))
+        all_h5 = sorted(Path(args.feat_dir).glob("*.h5"))
         slides = [p.stem for p in all_h5[: args.n_slides]]
 
     print(f"Processing {len(slides)} slide(s) → {out_dir}\n")

@@ -424,53 +424,56 @@ def run_umap(X: np.ndarray, n_neighbors: int = 30, min_dist: float = 0.25,
 
 def save_static(slides: list[str], xy: np.ndarray, meta: pd.DataFrame,
                 embed_name: str, out_dir: Path, dpi: int = 200):
-    """Save one PNG + PDF per colour variable using matplotlib."""
+    """Save one multi-page PDF for all colour variables."""
+    from matplotlib.backends.backend_pdf import PdfPages
+
     df = pd.DataFrame({"slide_id": slides, "umap_x": xy[:, 0], "umap_y": xy[:, 1]})
     df = df.join(meta, on="slide_id")
     for col in PALETTES:
         df[col] = df[col].fillna("Unknown") if col in df.columns else "Unknown"
 
-    for col, palette in PALETTES.items():
-        fig, ax = plt.subplots(figsize=(9, 7))
-        ax.set_facecolor("#FAFAFA")
-        fig.patch.set_facecolor("white")
+    pdf_path = out_dir / f"umap_{embed_name}.pdf"
+    with PdfPages(pdf_path) as pdf:
+        for col, palette in PALETTES.items():
+            fig, ax = plt.subplots(figsize=(9, 7))
+            ax.set_facecolor("#FAFAFA")
+            fig.patch.set_facecolor("white")
 
-        order = [k for k in palette if k != "Unknown"] + ["Unknown"]
-        for cat in order:
-            mask = df[col] == cat
-            if not mask.any():
-                continue
-            ax.scatter(
-                df.loc[mask, "umap_x"], df.loc[mask, "umap_y"],
-                c=palette[cat], s=8, alpha=0.7, linewidths=0,
-                rasterized=True, label=cat,
-            )
+            order = [k for k in palette if k != "Unknown"] + ["Unknown"]
+            for cat in order:
+                mask = df[col] == cat
+                if not mask.any():
+                    continue
+                ax.scatter(
+                    df.loc[mask, "umap_x"], df.loc[mask, "umap_y"],
+                    c=palette[cat], s=8, alpha=0.7, linewidths=0,
+                    rasterized=True, label=cat,
+                )
 
-        ax.set_xlabel("UMAP 1", fontsize=11)
-        ax.set_ylabel("UMAP 2", fontsize=11)
-        ax.set_title(f"{embed_name}  —  {LABEL_TITLES[col]}", fontsize=13, pad=10)
-        ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+            ax.set_xlabel("UMAP 1", fontsize=11)
+            ax.set_ylabel("UMAP 2", fontsize=11)
+            ax.set_title(f"{embed_name}  —  {LABEL_TITLES[col]}", fontsize=13, pad=10)
+            ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+            for spine in ax.spines.values():
+                spine.set_visible(False)
 
-        handles = [
-            mpatches.Patch(color=palette[cat], label=cat)
-            for cat in order if (df[col] == cat).any()
-        ]
-        ax.legend(handles=handles, title=LABEL_TITLES[col],
-                  fontsize=8, title_fontsize=9,
-                  loc="lower right", framealpha=0.85,
-                  markerscale=1.5, handlelength=1.2)
+            handles = [
+                mpatches.Patch(color=palette[cat], label=cat)
+                for cat in order if (df[col] == cat).any()
+            ]
+            ax.legend(handles=handles, title=LABEL_TITLES[col],
+                      fontsize=8, title_fontsize=9,
+                      loc="lower right", framealpha=0.85,
+                      markerscale=1.5, handlelength=1.2)
 
-        n_matched = df[col].ne("Unknown").sum()
-        fig.text(0.99, 0.01, f"{len(slides)} slides · {n_matched} with metadata",
-                 ha="right", va="bottom", fontsize=8, color="#888888")
+            n_matched = df[col].ne("Unknown").sum()
+            fig.text(0.99, 0.01, f"{len(slides)} slides · {n_matched} with metadata",
+                     ha="right", va="bottom", fontsize=8, color="#888888")
 
-        stem = f"umap_{embed_name}_{col}"
-        fig.savefig(out_dir / f"{stem}.png", dpi=dpi, bbox_inches="tight")
-        fig.savefig(out_dir / f"{stem}.pdf", bbox_inches="tight")
-        plt.close(fig)
-        print(f"    {stem}.png / .pdf")
+            pdf.savefig(fig, bbox_inches="tight")
+            plt.close(fig)
+
+    print(f"    → {pdf_path}")
 
 
 def parse_args():
