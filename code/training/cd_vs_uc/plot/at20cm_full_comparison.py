@@ -51,7 +51,7 @@ GRID  = '#e1e0d9'
 ARMS = [
     # (strategy_key, label, color, csv_path)
     ('img_base_visit',
-     'prism2 base\n(image embeddings)',
+     'prism2 base\n(image, 2,560 dim)',
      BLUE,   VISIT_CSV),
     ('hist_visit',
      'Histological scores\n(11 features)',
@@ -63,7 +63,7 @@ ARMS = [
      'Pathway: Hallmark\n(ssGSEA, 50 sets)',
      YELLOW, PATHWAY_CSV),
     ('concat_raw_visit',
-     'prism2 + RNA-seq\n(raw concat)',
+     'prism2 + RNA-seq\n(20,523 dim)',
      MAGENTA, VISIT_CSV),
     ('hallmark_histo_visit',
      'Hallmark + Histo\n(50 + 11 features)',
