@@ -37,7 +37,7 @@ import plotly.graph_objects as go
 JSONL_PATH  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_reports.jsonl")
 COORDS_NPZ  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/umap_prism2_diagnostic_coords.npz")
 META_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_metadata.csv")
-UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_reports.csv")
+UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_histological_score.csv")
 OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
 COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/compare")
 META_OUT    = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_report_features.csv")

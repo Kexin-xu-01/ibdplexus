@@ -89,7 +89,7 @@ def main():
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
 
     RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
-    csv_path = RESULTS_ROOT / "prism2_reports.csv"
+    csv_path = RESULTS_ROOT / "prism2_histological_score.csv"
 
     # Load existing table and index by slide
     existing_cols, existing_rows = load_table(csv_path)
