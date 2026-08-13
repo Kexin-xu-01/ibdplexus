@@ -205,16 +205,17 @@ def bar_figure(df_top20, title, subtitle, auc_str, symbol_col='symbol',
     ax.set_title(f'{title}\n{subtitle}  ·  AUC = {auc_str}',
                  fontsize=11, fontweight='bold', color=INK, pad=10, loc='left')
 
-    # legend
-    cats_present = {get_anno(g)[0] for g in genes}
-    handles = legend_handles(cats_present)
-    leg = ax.legend(handles=handles, title='Biological category',
-                    fontsize=7.5, title_fontsize=8,
-                    frameon=True, framealpha=0.9, edgecolor=GRID,
-                    loc='lower right', bbox_to_anchor=(0.98, 0.01))
-
     ax.spines['left'].set_color(BASE)
     ax.spines['bottom'].set_color(BASE)
+
+    cats_present = {get_anno(g)[0] for g in genes}
+    handles = legend_handles(cats_present)
+    fig.legend(handles=handles, title='Biological category',
+               fontsize=7.5, title_fontsize=8,
+               frameon=True, framealpha=0.9, edgecolor=GRID,
+               loc='lower center', bbox_to_anchor=(0.5, -0.02),
+               ncol=min(len(handles), 4), borderpad=0.6)
+
     fig.tight_layout()
     return fig
 
@@ -320,8 +321,9 @@ def dumbbell_figure(cmp_df, n=30, cap=350, figsize=(11, 9)):
         Line2D([0],[0], color='#27ae60', linewidth=2, alpha=0.7,
                label='Gene promoted in all-sites (site-correlated)'),
     ]
-    ax.legend(handles=handles, fontsize=7.5, frameon=True, framealpha=0.9,
-              edgecolor=GRID, loc='lower right', bbox_to_anchor=(0.48, 0.0))
+    fig.legend(handles=handles, fontsize=7.5, frameon=True, framealpha=0.9,
+               edgecolor=GRID, loc='lower center', bbox_to_anchor=(0.5, -0.02),
+               ncol=4, borderpad=0.6)
 
     fig.tight_layout()
     return fig
@@ -390,9 +392,10 @@ def fusion_figure(df_fus, img_frac, rna_frac, figsize=(10, 6)):
 
     cats_present = {get_anno(g)[0] for g in genes}
     handles = legend_handles(cats_present)
-    ax2.legend(handles=handles, title='Category', fontsize=7,
+    fig.legend(handles=handles, title='Biological category', fontsize=7,
                title_fontsize=7.5, frameon=True, framealpha=0.9,
-               edgecolor=GRID, loc='lower right')
+               edgecolor=GRID, loc='lower center', bbox_to_anchor=(0.5, -0.02),
+               ncol=min(len(handles), 4), borderpad=0.6)
 
     fig.suptitle('Multimodal Fusion (concat_raw_20cm) — At-20-cm Cohort',
                  fontsize=11, fontweight='bold', color=INK, y=1.01)
