@@ -17,6 +17,9 @@ Outputs (under OUT_DIR)
   shap_rna_histoscore_visit_top500.csv
   shap_concat_histoscore_visit_top500.csv
   shap_histoscore_summary.json
+  beeswarm_img_histoscore.npz     — per-sample SHAP + feature values (all 11 features)
+  beeswarm_rna_histoscore.npz     — per-sample SHAP + feature values (top 50 genes)
+  beeswarm_concat_histoscore.npz  — per-sample SHAP + feature values (top 50 features)
 """
 
 import os
@@ -123,12 +126,20 @@ def main():
 
     # ══ ARM 1: img_histoscore_visit ══════════════════════════════════════════
     print('\n=== ARM: img_histoscore_visit ===')
-    X    = feat_img(img_m)
-    y    = img_m['label'].values
-    folds = img_m['fold'].values
-    df_img, _, auc = run_shap('img_histoscore_visit', X, y, folds, HISTO_COLS)
+    X_img  = feat_img(img_m)
+    y      = img_m['label'].values
+    folds  = img_m['fold'].values
+    df_img, shap_img, auc = run_shap('img_histoscore_visit', X_img, y, folds, HISTO_COLS)
     df_img.to_csv(os.path.join(OUT_DIR, 'shap_img_histoscore_visit.csv'),
                   index=False, float_format='%.6f')
+    # save full per-sample arrays for beeswarm (945 × 11 — tiny)
+    np.savez_compressed(
+        os.path.join(OUT_DIR, 'beeswarm_img_histoscore.npz'),
+        shap_values=shap_img,
+        feature_values=X_img,
+        feature_names=np.array(HISTO_COLS),
+        labels=y,
+    )
     summary['img_histoscore_visit'] = {
         'auc': round(auc, 4),
         'top11': df_img[['feature', 'mean_abs_shap', 'mean_shap', 'direction']
@@ -137,12 +148,21 @@ def main():
 
     # ══ ARM 2: rna_visit ════════════════════════════════════════════════════
     print('\n=== ARM: rna_visit ===')
-    X    = feat_rna(rna_m)
-    y    = rna_m['label'].values
-    folds = rna_m['fold'].values
-    df_rna, _, auc = run_shap('rna_visit', X, y, folds, gene_names)
+    X_rna  = feat_rna(rna_m)
+    y      = rna_m['label'].values
+    folds  = rna_m['fold'].values
+    df_rna, shap_rna, auc = run_shap('rna_visit', X_rna, y, folds, gene_names)
     df_rna.to_csv(os.path.join(OUT_DIR, 'shap_rna_histoscore_visit_top500.csv'),
                   index=False, float_format='%.6f')
+    # save top-50 features for beeswarm
+    top50_rna_idx = df_rna['feature_idx'].values[:50]
+    np.savez_compressed(
+        os.path.join(OUT_DIR, 'beeswarm_rna_histoscore.npz'),
+        shap_values=shap_rna[:, top50_rna_idx],
+        feature_values=X_rna[:, top50_rna_idx],
+        feature_names=np.array(df_rna['feature'].values[:50]),
+        labels=y,
+    )
     summary['rna_visit'] = {
         'auc': round(auc, 4),
         'top20': df_rna.head(20)[['feature', 'mean_abs_shap', 'direction']
@@ -153,7 +173,7 @@ def main():
     print('\n=== ARM: concat_histoscore_visit ===')
     n_img = len(HISTO_COLS)
     concat_names = [f'histo_{c}' for c in HISTO_COLS] + gene_names
-    X_cat = np.hstack([feat_img(img_m), feat_rna(rna_m)])
+    X_cat = np.hstack([X_img, X_rna])
     y     = img_m['label'].values
     folds = img_m['fold'].values
     df_cat, shap_cat, auc = run_shap('concat_histoscore_visit', X_cat, y, folds,
@@ -167,6 +187,15 @@ def main():
     img_frac  = img_total / (img_total + rna_total)
     rna_frac  = rna_total / (img_total + rna_total)
     print(f'  Fusion SHAP split: histoscore={img_frac*100:.1f}%  RNA={rna_frac*100:.1f}%')
+    # save top-50 features for beeswarm
+    top50_cat_idx = df_cat['feature_idx'].values[:50]
+    np.savez_compressed(
+        os.path.join(OUT_DIR, 'beeswarm_concat_histoscore.npz'),
+        shap_values=shap_cat[:, top50_cat_idx],
+        feature_values=X_cat[:, top50_cat_idx],
+        feature_names=np.array(df_cat['feature'].values[:50]),
+        labels=y,
+    )
 
     summary['concat_histoscore_visit'] = {
         'auc': round(auc, 4),
