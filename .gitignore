@@ -15,3 +15,18 @@ models/
 # SSH keys
 code/git
 code/git.pub
+
+# Private data / metadata
+*.csv
+*.tsv
+*.json
+*.npz
+*.npy
+*.parquet
+*.xlsx
+
+# Internal session context (contains cluster paths)
+CLAUDE.md
+
+# IDE
+.vscode/
