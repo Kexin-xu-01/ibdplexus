@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kgbk271-laplacien-inspect
+  namespace: ibd-plexus-research
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: default-editor
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: GPU_workload
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: kgbk271-ibd-volume
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-volume
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
+        - name: kgbk271-ibd-workspace
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-workspace
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      containers:
+        - name: laplacien-inspect
+          image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              pip install -q openslide-python openslide-bin opencv-python-headless h5py matplotlib
+              python /home/jovyan/ibdplexus/code/image_qc/laplacien/inspect_rejected.py \
+                --threshold 100 \
+                --n_slides 80 \
+                --workers 8
+          resources:
+            requests:
+              cpu: "8"
+              memory: 32Gi
+            limits:
+              cpu: "8"
+              memory: 32Gi
+          env:
+            - name: http_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: https_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: no_proxy
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: kgbk271-ibd-volume
+              mountPath: /home/jovyan/kgbk271-ibd-volume
+            - name: shared-data
+              mountPath: /home/jovyan/shared-data
+            - name: kgbk271-ibd-workspace
+              mountPath: /home/jovyan

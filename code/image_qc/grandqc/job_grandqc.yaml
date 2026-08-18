@@ -1,0 +1,85 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kgbk271-grandqc-artifact
+  namespace: ibd-plexus-research
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: default-editor
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: GPU_workload
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: kgbk271-ibd-volume
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-volume
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
+        - name: kgbk271-ibd-workspace
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-workspace
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+      containers:
+        - name: grandqc
+          image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              # ── install dependencies ───────────────────────────────────────
+              pip install -q \
+                openslide-python openslide-bin \
+                "segmentation-models-pytorch==0.3.3" \
+                "timm==0.9.12" \
+                opencv-python-headless \
+                tqdm h5py
+
+              # ── clone GrandQC helper scripts (needed for wsi_slide_info) ──
+              if [ ! -d /tmp/grandqc ]; then
+                git clone --depth=1 https://github.com/cpath-ukk/grandqc /tmp/grandqc
+              fi
+
+              # ── run GrandQC inference on all slides ───────────────────────
+              # State dict extraction and timm shims are handled automatically
+              # by build_model() on first run; restart-safe (skips existing masks)
+              python /home/jovyan/ibdplexus/code/image_qc/grandqc/run_grandqc.py \
+                --gpu 0 \
+                --start 0 \
+                --end -1
+
+          resources:
+            requests:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+          env:
+            - name: http_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: https_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: no_proxy
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: kgbk271-ibd-volume
+              mountPath: /home/jovyan/kgbk271-ibd-volume
+            - name: shared-data
+              mountPath: /home/jovyan/shared-data
+            - name: kgbk271-ibd-workspace
+              mountPath: /home/jovyan
