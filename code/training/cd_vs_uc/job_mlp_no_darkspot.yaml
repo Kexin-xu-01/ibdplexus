@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kgbk271-mlp-no-darkspot
+  namespace: ibd-plexus-research
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: default-editor
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: GPU_workload
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: kgbk271-ibd-volume
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-volume
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
+        - name: kgbk271-ibd-workspace
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-workspace
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+      containers:
+        - name: mlp
+          image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
+                /home/jovyan/ibdplexus/code/training/cd_vs_uc/08h_train_at20cm_mlp.py \
+                --histoscore_csv /home/jovyan/kgbk271-ibd-volume/results/prism2_no_darkspot/prism2_histological_score.csv \
+                --emb_base_dir   /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/prism2_base \
+                --cv_patients    /home/jovyan/kgbk271-ibd-volume/training/cv_splits_patients.csv \
+                --out_dir        /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/no_darkspot/mlp_results
+          resources:
+            requests:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: 32Gi
+              nvidia.com/gpu: "1"
+          env:
+            - name: http_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: https_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: no_proxy
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
+            - name: HF_HOME
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: HF_HUB_CACHE
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: TRANSFORMERS_CACHE
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: TRANSFORMERS_OFFLINE
+              value: "1"
+            - name: HF_DATASETS_OFFLINE
+              value: "1"
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: kgbk271-ibd-volume
+              mountPath: /home/jovyan/kgbk271-ibd-volume
+            - name: shared-data
+              mountPath: /home/jovyan/shared-data
+            - name: kgbk271-ibd-workspace
+              mountPath: /home/jovyan

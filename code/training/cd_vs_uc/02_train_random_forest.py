@@ -166,6 +166,8 @@ def main():
                    help="Directory containing prism2_diagnostic .h5 files.")
     p.add_argument("--out_dir", type=str, default=OUT_DIR,
                    help="Output directory for results.")
+    p.add_argument("--splits_csv", type=str, default=SPLITS_CSV,
+                   help="CV splits CSV file (default: cv_splits_slides.csv).")
     args = p.parse_args()
 
     emb_dirs = {
@@ -175,7 +177,7 @@ def main():
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
 
-    slides_df = pd.read_csv(SPLITS_CSV)
+    slides_df = pd.read_csv(args.splits_csv)
     slides_df['label'] = slides_df['diagnosis'].map(LABEL_MAP)
     print(f"Loaded {len(slides_df)} slides")
     print(slides_df['diagnosis'].value_counts().to_string())
