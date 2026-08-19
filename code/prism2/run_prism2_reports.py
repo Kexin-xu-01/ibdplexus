@@ -48,7 +48,11 @@ def parse_args():
     p.add_argument("--prompt", type=str, default="Write a report",
                    help="Prompt passed to every slide.")
     p.add_argument("--out_dir", type=str, default=None,
-                   help="Output directory. Defaults to <job_dir>/prism2_reports/<prompt_slug>/")
+                   help="Output directory. Defaults to <results_root>/reports/<prompt_slug>/")
+    p.add_argument("--feat_dir", type=str, default=str(FEAT_DIR),
+                   help="Directory containing per-slide virchow2 .h5 files.")
+    p.add_argument("--results_root", type=str, default=str(RESULTS_ROOT),
+                   help="Root directory for shared JSONL/CSV outputs.")
     p.add_argument("--yes_no", action="store_true",
                    help="Run yes/no scoring instead of text generation. Saves a CSV.")
     p.add_argument("--batch_size", type=int, default=4,
@@ -94,10 +98,10 @@ def rebuild_csv(jsonl_path: Path, csv_path: Path):
             writer.writerow({"slide": slide, **data[slide]})
 
 
-def append_results(prompt: str, stems: list, texts: list):
+def append_results(prompt: str, stems: list, texts: list, results_root: Path):
     """Append records to the shared JSONL then rebuild the wide CSV."""
-    jsonl_path = RESULTS_ROOT / "prism2_reports.jsonl"
-    csv_path   = RESULTS_ROOT / "prism2_reports.csv"
+    jsonl_path = results_root / "prism2_reports.jsonl"
+    csv_path   = results_root / "prism2_reports.csv"
 
     with open(jsonl_path, "a") as jf:
         for slide, report in zip(stems, texts):
@@ -110,11 +114,15 @@ def main():
     args = parse_args()
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
 
+    feat_dir     = Path(args.feat_dir)
+    results_root = Path(args.results_root)
+    results_root.mkdir(parents=True, exist_ok=True)
+
     if args.out_dir:
         out_dir = Path(args.out_dir)
     else:
         tag = "yesno" if args.yes_no else "reports"
-        out_dir = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2") / tag / prompt_slug(args.prompt)
+        out_dir = results_root / tag / prompt_slug(args.prompt)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading PRISM2 from {MODEL_PATH} ...")
@@ -131,7 +139,7 @@ def main():
     )
     print(f"Model loaded. Prompt: '{args.prompt}'")
 
-    all_h5 = sorted(FEAT_DIR.glob("*.h5"))
+    all_h5 = sorted(feat_dir.glob("*.h5"))
     ext = ".csv" if args.yes_no else ".txt"
     pending = [p for p in all_h5 if not (out_dir / f"{p.stem}{ext}").exists()]
 
@@ -178,7 +186,7 @@ def main():
                     )
                     for stem, text in zip(stems, responses):
                         (out_dir / f"{stem}.txt").write_text(text)
-                    append_results(args.prompt, stems, responses)
+                    append_results(args.prompt, stems, responses, results_root)
 
             done_count += len(stems)
             print(f"[{done_count}/{len(pending)}] {stems[0]} ... {stems[-1]}")

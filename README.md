@@ -56,6 +56,7 @@ confound introduced by differential ileal sampling in CD.
 | `08b_train_at20cm_visit_level.py` | Visit-level: img_base + RNA + concat — **945 visits / 817 patients** |
 | `08c_train_at20cm_histoscore.py` | Replaces prism2_base with 11-d histological scores (*concept learning* series) |
 | `08d`, `08e` | Pathway-score and hallmark+histoscore variants |
+| `08f_train_at20cm_bulkformer.py` | BulkFormer arm: 640-d learned transcriptomic embeddings; same at-20-cm cohort |
 
 ### Stages 10–11 — SHAP feature importance
 | Script | Description |

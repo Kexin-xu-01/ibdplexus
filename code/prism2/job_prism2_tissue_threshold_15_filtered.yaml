@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-grandqc-artifact
+  name: kgbk271-prism2-tissue-threshold-15-filtered
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -29,39 +29,18 @@ spec:
             medium: Memory
             sizeLimit: 16Gi
       containers:
-        - name: grandqc
+        - name: prism2
           image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
           command:
             - /bin/bash
             - -c
             - |
-              set -e
-
-              # ── install torch stack + deps (driver supports CUDA 12.8; base ──────
-              # ── image has cu130 which needs ≥13.0 driver; use cu124 instead) ─────
-              pip install -q \
-                "torch==2.5.1+cu124" \
-                "torchvision==0.20.1+cu124" \
-                "segmentation-models-pytorch==0.3.3" \
-                openslide-python openslide-bin \
-                opencv-python-headless \
-                tqdm h5py \
-                --index-url https://download.pytorch.org/whl/cu124 \
-                --extra-index-url https://pypi.org/simple
-
-              # ── clone GrandQC helper scripts (needed for wsi_slide_info) ──
-              if [ ! -d /tmp/grandqc ]; then
-                git clone --depth=1 https://github.com/cpath-ukk/grandqc /tmp/grandqc
-              fi
-
-              # ── run GrandQC inference on all slides ───────────────────────
-              # State dict extraction and timm shims are handled automatically
-              # by build_model() on first run; restart-safe (skips existing masks)
-              python /home/jovyan/ibdplexus/code/image_qc/grandqc/run_grandqc.py \
+              /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
+                /home/jovyan/ibdplexus/code/encode_image/run_prism2.py \
+                --job_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered \
                 --gpu 0 \
-                --start 0 \
-                --end -1
-
+                --batch_size 8 \
+                --skip_errors
           resources:
             requests:
               cpu: "8"
@@ -78,6 +57,18 @@ spec:
               value: "http://azpse.astrazeneca.net:9480"
             - name: no_proxy
               value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
+            - name: HF_HOME
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: HF_HUB_CACHE
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: TRANSFORMERS_CACHE
+              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: TRANSFORMERS_OFFLINE
+              value: "1"
+            - name: HF_DATASETS_OFFLINE
+              value: "1"
           volumeMounts:
             - name: dshm
               mountPath: /dev/shm

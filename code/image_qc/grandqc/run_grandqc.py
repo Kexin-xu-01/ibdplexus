@@ -26,6 +26,7 @@ Supports restart: skips slides whose mask already exists in OUT_MASKS.
 """
 
 import sys, os, warnings, argparse, json
+from concurrent.futures import ThreadPoolExecutor
 warnings.filterwarnings("ignore")
 
 GRANDQC_DIR = "/tmp/grandqc/01_WSI_inference_OPENSLIDE_QC"
@@ -41,7 +42,6 @@ from pathlib import Path
 from PIL import Image
 from openslide import OpenSlide
 import segmentation_models_pytorch as smp
-from tqdm import tqdm
 
 from wsi_slide_info import slide_info
 from wsi_colors import colors_QC7 as COLORS_QC
@@ -50,36 +50,46 @@ from wsi_colors import colors_QC7 as COLORS_QC
 WSI_DIR      = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
 GEOJSON_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15/contours_geojson")
 MODEL_QC_SD  = Path("/home/jovyan/shared-data/users/kexin/models/histology/grandqc/GrandQC_MPP1_state_dict.pth")
-MODEL_QC_FULL= Path("/home/jovyan/shared-data/users/kexin/models/histology/grandqc/GrandQC_MPP15.pth")
+MODEL_QC_FULL= Path("/home/jovyan/shared-data/users/kexin/models/histology/grandqc/GrandQC_MPP1.pth")
 OUT_DIR      = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_remove_artifact")
-OUT_MASKS    = OUT_DIR / "grandqc_masks"
-OUT_OVERLAY  = OUT_DIR / "grandqc_overlays"
+OUT_MASKS    = OUT_DIR / "grandqc" / "mpp1" / "grandqc_masks"
+OUT_OVERLAY  = OUT_DIR / "grandqc" / "mpp1" / "grandqc_overlays"
 OUT_MASKS.mkdir(parents=True, exist_ok=True)
 OUT_OVERLAY.mkdir(parents=True, exist_ok=True)
 
 # ── GrandQC config ────────────────────────────────────────────────────────────
 MPP_MODEL_TD = 10.0   # tissue mask resolution
-MPP_MODEL_QC = 1.5    # artifact model resolution (7x)
+MPP_MODEL_QC = 1.0    # artifact model resolution (highest resolution)
 M_P_S        = 512    # model patch size
+BATCH_SIZE   = 32     # GPU inference batch size
+READ_WORKERS = 8      # parallel OpenSlide read threads
 ENCODER      = "timm-efficientnet-b0"
 BACK_CLASS   = 7      # background class index in mask
 
 # Colormap: mask values 0-7 → RGB  (index = mask_value)
+# Original GrandQC class ordering (verified from wsi_colors.py / wsi_process.py):
+#   0 = unused (never predicted for tissue patches)
+#   1 = clean tissue (ART_NORM)
+#   2 = tissue fold  (ART_FOLD)
+#   3 = dark spots   (ART_DARKSPOT)
+#   4 = pen marks    (ART_PEN)
+#   5 = air bubble / slide edge (ART_EDGE)
+#   6 = out of focus (ART_FOCUS)
+#   7 = background   (forced via BACK_CLASS)
 COLORMAP = np.array([
-    [128, 128, 128],   # 0: clean tissue – gray
-    [255,  99,  71],   # 1: tissue fold – orange
-    [  0, 200,   0],   # 2: dark spots – green
-    [255,   0,   0],   # 3: pen marks – red
-    [255,   0, 255],   # 4: air bubble/edge – pink
-    [ 75,   0, 130],   # 5: out of focus – violet
-    [255, 165,   0],   # 6: other artifact – amber
+    [  0,   0,   0],   # 0: unused – black
+    [128, 128, 128],   # 1: clean tissue – gray
+    [255,  99,  71],   # 2: tissue fold – orange
+    [  0, 200,   0],   # 3: dark spots – green
+    [255,   0,   0],   # 4: pen marks – red
+    [255,   0, 255],   # 5: air bubble/edge – pink
+    [ 75,   0, 130],   # 6: out of focus – violet
     [  0,   0,   0],   # 7: background – black (transparent in overlay)
 ], dtype=np.uint8)
 
 ARTIFACT_NAMES = {
-    0: "clean tissue", 1: "tissue fold",   2: "dark spots",
-    3: "pen marks",    4: "air bubble/edge", 5: "out of focus",
-    6: "other artifact",
+    2: "tissue fold", 3: "dark spots",
+    4: "pen marks",   5: "air bubble/edge", 6: "out of focus",
 }
 
 
@@ -110,7 +120,7 @@ def _install_timm_shims():
 
 def build_model(device: str):
     """Load GrandQC MPP1.5 model from pre-extracted state dict (or extract it first)."""
-    sd_path = OUT_DIR / "grandqc_mpp15_state_dict.pth"
+    sd_path = OUT_DIR / "grandqc" / "mpp1" / "grandqc_mpp1_state_dict.pth"
     if not sd_path.exists():
         _install_timm_shims()
         import warnings; warnings.filterwarnings("ignore")
@@ -164,13 +174,14 @@ def run_slide(model, preprocessing_fn, slide: OpenSlide, tis_mask: np.ndarray,
               mpp: float, device: str):
     """
     Run artifact segmentation and return (raw_mask, p_s).
+    Uses batched GPU inference + parallel OpenSlide reads to maximise GPU util.
 
-    raw_mask: uint8 array, values 1-7
-    p_s: level-0 pixels per model cell (needed for patch mapping downstream)
+    raw_mask: uint8 array, values 0-7 (7=background)
+    p_s: level-0 pixels per model cell
     """
     p_s, patch_n_w, patch_n_h, _, w_l0, h_l0, _ = slide_info(slide, M_P_S, MPP_MODEL_QC)
 
-    # Resize tissue mask from MPP=10 to MPP=1.5 space
+    # Resize tissue mask to model MPP space
     tis_mpp = np.array(
         Image.fromarray(tis_mask).resize(
             (int(w_l0 * mpp / MPP_MODEL_QC), int(h_l0 * mpp / MPP_MODEL_QC)),
@@ -178,39 +189,70 @@ def run_slide(model, preprocessing_fn, slide: OpenSlide, tis_mask: np.ndarray,
         )
     )
 
-    full_mask = None
+    # Pre-allocate output mask (all background)
+    full_mask = np.full((patch_n_h * M_P_S, patch_n_w * M_P_S), BACK_CLASS, dtype=np.uint8)
 
-    for hi in tqdm(range(patch_n_h), desc="  rows", leave=False):
-        row = None
+    # Identify tissue cells and their grid positions
+    tissue_cells = []   # [(hi, wi, x, y, td_cell), ...]
+    for hi in range(patch_n_h):
         for wi in range(patch_n_w):
             x = wi * p_s if wi > 0 else 0
             y = hi * p_s if hi > 0 else 0
-
-            # Check tissue mask cell
             td_cell = tis_mpp[hi * M_P_S:(hi + 1) * M_P_S,
                                wi * M_P_S:(wi + 1) * M_P_S]
             if td_cell.shape != (M_P_S, M_P_S):
                 pad = [(0, M_P_S - td_cell.shape[0]), (0, M_P_S - td_cell.shape[1])]
                 td_cell = np.pad(td_cell, pad, constant_values=1)
-
             if np.count_nonzero(td_cell == 0) > 50:
-                # Tissue present – run model
-                patch = slide.read_region((x, y), 0, (p_s, p_s)).convert("RGB")
-                patch = patch.resize((M_P_S, M_P_S), Image.Resampling.LANCZOS)
-                img   = preprocessing_fn(np.array(patch))
-                x_t   = torch.from_numpy(img.transpose(2, 0, 1).astype("float32"))
-                with torch.no_grad():
-                    pred = model(x_t.unsqueeze(0).to(device))
-                raw = np.argmax(pred.squeeze().cpu().numpy(), axis=0).astype(np.uint8)
-                # Keep 0-indexed: 0=clean tissue, 1-6=artifacts, 7=background
-                # Force background pixels (tissue mask == 1) to BACK_CLASS
-                cell = np.where(td_cell == 1, BACK_CLASS, raw).astype(np.uint8)
-            else:
-                cell = np.full((M_P_S, M_P_S), BACK_CLASS, dtype=np.uint8)
+                tissue_cells.append((hi, wi, x, y, td_cell))
 
-            row = cell if row is None else np.concatenate([row, cell], axis=1)
+    if not tissue_cells:
+        return full_mask, p_s
 
-        full_mask = row if full_mask is None else np.concatenate([full_mask, row], axis=0)
+    def read_patch(args):
+        hi, wi, x, y, td_cell = args
+        patch = slide.read_region((x, y), 0, (p_s, p_s)).convert("RGB")
+        patch = patch.resize((M_P_S, M_P_S), Image.Resampling.LANCZOS)
+        img = preprocessing_fn(np.array(patch)).transpose(2, 0, 1).astype("float32")
+        return img, td_cell, hi, wi
+
+    # Process in batches: parallel reads + batched GPU inference
+    with ThreadPoolExecutor(max_workers=READ_WORKERS) as pool:
+        # Pre-fetch first batch
+        batch_size = BATCH_SIZE
+        n = len(tissue_cells)
+        futures = []
+        fetch_idx = 0
+
+        # Submit first batch
+        for _ in range(min(batch_size, n)):
+            futures.append(pool.submit(read_patch, tissue_cells[fetch_idx]))
+            fetch_idx += 1
+
+        processed = 0
+        while futures:
+            # Collect ready results (up to batch_size)
+            batch_results = [f.result() for f in futures]
+            futures = []
+
+            # Submit next batch while GPU runs current
+            for _ in range(min(batch_size, n - fetch_idx)):
+                futures.append(pool.submit(read_patch, tissue_cells[fetch_idx]))
+                fetch_idx += 1
+
+            # Stack and run GPU inference
+            imgs = np.stack([r[0] for r in batch_results])
+            batch_tensor = torch.from_numpy(imgs).to(device)
+            with torch.no_grad():
+                preds = model(batch_tensor)
+            raw_batch = np.argmax(preds.cpu().numpy(), axis=1).astype(np.uint8)
+
+            for j, (img, td_cell, hi, wi) in enumerate(batch_results):
+                cell = np.where(td_cell == 1, BACK_CLASS, raw_batch[j]).astype(np.uint8)
+                full_mask[hi * M_P_S:(hi + 1) * M_P_S,
+                          wi * M_P_S:(wi + 1) * M_P_S] = cell
+
+            processed += len(batch_results)
 
     return full_mask, p_s
 
@@ -274,11 +316,11 @@ def main():
             overlay  = cv2.addWeighted(thumb_np, 0.6, color_mask, 0.4, 0)
             cv2.imwrite(str(OUT_OVERLAY / f"{stem}_overlay.jpg"), overlay[:, :, ::-1])
 
-            # Stats (artifacts = values 1-6)
+            # Stats (artifacts = values 2-6; class 1 = clean tissue)
             vals, cnts = np.unique(raw_mask, return_counts=True)
-            art_pct = cnts[(vals >= 1) & (vals <= 6)].sum() / raw_mask.size * 100
+            art_pct = cnts[(vals >= 2) & (vals <= 6)].sum() / raw_mask.size * 100
             print(f"    artifact pixels: {art_pct:.1f}%  "
-                  f"{ {ARTIFACT_NAMES.get(int(v), str(v)): int(c) for v, c in zip(vals, cnts) if 1 <= v <= 6} }")
+                  f"{ {ARTIFACT_NAMES.get(int(v), str(v)): int(c) for v, c in zip(vals, cnts) if 2 <= v <= 6} }")
             slide.close()
         except Exception as e:
             print(f"    [error] {e}")

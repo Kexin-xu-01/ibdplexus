@@ -66,7 +66,7 @@ def load_embeddings(slide_ids, emb_dir):
     return np.array(X, dtype=np.float32), valid_ids
 
 
-def run_cv(model_name, emb_dir, slides_df):
+def run_cv(model_name, emb_dir, slides_df, out_dir=OUT_DIR):
     print(f"\n{'='*60}")
     print(f"  {model_name}  |  CD=0, UC=1, positive class=UC")
     print(f"{'='*60}")
@@ -133,9 +133,9 @@ def run_cv(model_name, emb_dir, slides_df):
     print(f"  Accuracy: {np.mean(accs):.4f} ± {np.std(accs):.4f}")
 
     pd.DataFrame(fold_results).to_csv(
-        os.path.join(OUT_DIR, f'{model_name}_fold_metrics.csv'), index=False)
+        os.path.join(out_dir, f'{model_name}_fold_metrics.csv'), index=False)
     pd.DataFrame(all_preds).to_csv(
-        os.path.join(OUT_DIR, f'{model_name}_slide_predictions.csv'), index=False)
+        os.path.join(out_dir, f'{model_name}_slide_predictions.csv'), index=False)
 
     summary = dict(
         model=model_name,
@@ -151,14 +151,29 @@ def run_cv(model_name, emb_dir, slides_df):
         score_column='prob_uc',
         rf_params=RF_PARAMS,
     )
-    with open(os.path.join(OUT_DIR, f'{model_name}_summary.json'), 'w') as f:
+    with open(os.path.join(out_dir, f'{model_name}_summary.json'), 'w') as f:
         json.dump(summary, f, indent=2)
 
     return summary
 
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--emb_base_dir", type=str, default=EMB_DIRS["prism2_base"],
+                   help="Directory containing prism2_base .h5 files.")
+    p.add_argument("--emb_diag_dir", type=str, default=EMB_DIRS["prism2_diagnostic"],
+                   help="Directory containing prism2_diagnostic .h5 files.")
+    p.add_argument("--out_dir", type=str, default=OUT_DIR,
+                   help="Output directory for results.")
+    args = p.parse_args()
+
+    emb_dirs = {
+        "prism2_base":       args.emb_base_dir,
+        "prism2_diagnostic": args.emb_diag_dir,
+    }
+    out_dir = args.out_dir
+    os.makedirs(out_dir, exist_ok=True)
 
     slides_df = pd.read_csv(SPLITS_CSV)
     slides_df['label'] = slides_df['diagnosis'].map(LABEL_MAP)
@@ -166,8 +181,8 @@ def main():
     print(slides_df['diagnosis'].value_counts().to_string())
 
     results = {}
-    for model_name, emb_dir in EMB_DIRS.items():
-        results[model_name] = run_cv(model_name, emb_dir, slides_df)
+    for model_name, emb_dir in emb_dirs.items():
+        results[model_name] = run_cv(model_name, emb_dir, slides_df, out_dir)
 
     print('\n\n=== FINAL COMPARISON ===')
     print(f"{'Model':<22} {'AUC':<20} {'AP':<20} {'Accuracy'}")
@@ -175,7 +190,7 @@ def main():
         print(f"{name:<22} {s['mean_auc']:.4f} ± {s['std_auc']:.4f}   "
               f"{s['mean_ap']:.4f} ± {s['std_ap']:.4f}   "
               f"{s['mean_acc']:.4f} ± {s['std_acc']:.4f}")
-    print(f"\nResults saved to {OUT_DIR}/")
+    print(f"\nResults saved to {out_dir}/")
 
 
 if __name__ == '__main__':

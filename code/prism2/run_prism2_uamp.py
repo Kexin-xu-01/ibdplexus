@@ -55,6 +55,10 @@ def parse_args():
                    help="Slides per forward pass. Reduce if OOM.")
     p.add_argument("--gpu", type=int, default=0)
     p.add_argument("--skip_errors", action="store_true", default=True)
+    p.add_argument("--feat_dir", type=str, default=str(FEAT_DIR),
+                   help="Directory containing per-slide virchow2 .h5 files.")
+    p.add_argument("--results_root", type=str, default=str(RESULTS_ROOT),
+                   help="Root directory where prism2_histological_score.csv is written.")
     return p.parse_args()
 
 
@@ -88,8 +92,10 @@ def main():
     args = parse_args()
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
 
-    RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
-    csv_path = RESULTS_ROOT / "prism2_histological_score.csv"
+    feat_dir     = Path(args.feat_dir)
+    results_root = Path(args.results_root)
+    results_root.mkdir(parents=True, exist_ok=True)
+    csv_path = results_root / "prism2_histological_score.csv"
 
     # Load existing table and index by slide
     existing_cols, existing_rows = load_table(csv_path)
@@ -123,7 +129,7 @@ def main():
     )
     print(f"Model loaded. Scoring {len(UAMP_TERMS)} UAMP terms.")
 
-    all_h5 = sorted(FEAT_DIR.glob("*.h5"))
+    all_h5 = sorted(feat_dir.glob("*.h5"))
     pending = [p for p in all_h5 if p.stem not in done_slides]
     print(f"Total slides: {len(all_h5)}  |  Already done: {len(done_slides)}  |  To process: {len(pending)}")
 
@@ -173,6 +179,7 @@ def main():
             else:
                 raise
 
+    save_table(csv_path, fieldnames, list(table.values()))
     print(f"\nDone. Results saved to {csv_path}")
 
 

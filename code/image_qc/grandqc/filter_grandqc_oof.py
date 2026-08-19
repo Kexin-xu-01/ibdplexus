@@ -30,7 +30,7 @@ MASKS_DIR   = BASE_DIR / "grandqc_masks"
 OUT_DIR     = BASE_DIR / "grandqc_oof"
 
 M_P_S = 512   # GrandQC model patch size in pixels
-OOF_CLASS = 5  # 0-indexed: 5 = out-of-focus
+OOF_CLASS = 6  # GrandQC class 6 = out-of-focus (class 1=clean, 2=fold, 3=dark, 4=pen, 5=bubble, 6=oof, 7=bg)
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(message)s",
