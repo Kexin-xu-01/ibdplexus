@@ -35,7 +35,10 @@ spec:
             - /bin/bash
             - -c
             - |
-              /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
+              /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
+                -m pip install -q torch h5py --index-url https://download.pytorch.org/whl/cpu \
+                               --extra-index-url https://pypi.org/simple
+              /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
                 /home/jovyan/ibdplexus/code/training/cd_vs_uc/08h_train_at20cm_mlp.py \
                 --histoscore_csv /home/jovyan/kgbk271-ibd-volume/results/prism2_no_darkspot/prism2_histological_score.csv \
                 --emb_base_dir   /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/prism2_base \
