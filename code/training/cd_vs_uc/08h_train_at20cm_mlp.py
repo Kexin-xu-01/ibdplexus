@@ -358,6 +358,7 @@ def summarise(fold_results):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
+    global HISTOSCORE_CSV, EMB_BASE, CV_PATIENTS, OUT_DIR
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument("--histoscore_csv", type=str, default=HISTOSCORE_CSV)
@@ -365,7 +366,6 @@ def main():
     p.add_argument("--cv_patients",    type=str, default=CV_PATIENTS)
     p.add_argument("--out_dir",        type=str, default=OUT_DIR)
     a = p.parse_args()
-    global HISTOSCORE_CSV, EMB_BASE, CV_PATIENTS, OUT_DIR
     HISTOSCORE_CSV = a.histoscore_csv
     EMB_BASE       = a.emb_base_dir
     CV_PATIENTS    = a.cv_patients
