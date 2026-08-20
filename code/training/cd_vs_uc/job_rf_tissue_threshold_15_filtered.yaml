@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kgbk271-rf-tissue-threshold-15-filtered
+  namespace: ibd-plexus-research
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: default-editor
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: GPU_workload
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: kgbk271-ibd-volume
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-volume
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
+        - name: kgbk271-ibd-workspace
+          persistentVolumeClaim:
+            claimName: kgbk271-ibd-workspace
+      containers:
+        - name: rf-tissue-threshold-15-filtered
+          image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
+                /home/jovyan/ibdplexus/code/training/cd_vs_uc/02_train_random_forest.py \
+                --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered/20x_224px_0px_overlap/prism2_base \
+                --emb_diag_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered/20x_224px_0px_overlap/prism2_diagnostic \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/tissue_threshold_15_filtered/results
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+            limits:
+              cpu: "4"
+              memory: 16Gi
+          env:
+            - name: http_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: https_proxy
+              value: "http://azpse.astrazeneca.net:9480"
+            - name: no_proxy
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
+          volumeMounts:
+            - name: kgbk271-ibd-volume
+              mountPath: /home/jovyan/kgbk271-ibd-volume
+            - name: shared-data
+              mountPath: /home/jovyan/shared-data
+            - name: kgbk271-ibd-workspace
+              mountPath: /home/jovyan
