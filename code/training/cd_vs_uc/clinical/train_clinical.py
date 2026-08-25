@@ -112,18 +112,9 @@ BINARY_COLS = [
     'ckd', 'hiv', 'tuberculosis',
 ]
 
-LAB_TEXT_COLS = [
-    'hemoglobin_text',
-    'erythrocyte_sedimentation_text',
-    'neutrophil_text',
-    'white_blood_text',
-    'platelets_text',
-]
-
 FEATURE_NAMES = (
     NUMERIC_COLS
     + ['stool_freq', 'fecal_urgency', 'da6m', 'smk']
-    + LAB_TEXT_COLS
     + BINARY_COLS
 )
 
@@ -232,9 +223,6 @@ def build_feature_matrix(cv_patients, matched_pids):
 
     for col in BINARY_COLS:
         df[col] = df[col].map({'Y': 1, 'N': 0})
-
-    for col in LAB_TEXT_COLS:
-        df[col] = extract_numeric(df[col])
 
     out = df[['patient_id', 'label', 'fold'] + FEATURE_NAMES].copy()
 
