@@ -121,10 +121,22 @@ def main():
     result.to_csv(os.path.join(OUT_DIR, 'shap_clinical.csv'),
                   index=False, float_format='%.6f')
 
-    # Save raw SHAP matrix
+    # Build imputed feature values matrix (same imputation as training)
+    X_raw = df[FEATURE_NAMES].values.astype(float)
+    feat_vals_imp = SimpleImputer(strategy='median').fit_transform(X_raw)
+
+    # Sort both arrays by mean|SHAP| descending so beeswarm_plot works directly
+    mean_abs_all = np.abs(shap_vals).mean(axis=0)
+    sort_order   = np.argsort(mean_abs_all)[::-1]
+    shap_sorted  = shap_vals[:, sort_order]
+    feat_sorted  = feat_vals_imp[:, sort_order]
+    names_sorted = np.array(FEATURE_NAMES)[sort_order]
+
+    # Save npz for beeswarm (keys match 11d_beeswarm_histoscore.py convention)
     np.savez(os.path.join(OUT_DIR, 'shap_clinical_values.npz'),
-             shap_values=shap_vals,
-             feature_names=np.array(FEATURE_NAMES),
+             shap_values=shap_sorted,
+             feature_values=feat_sorted,
+             feature_names=names_sorted,
              labels=df['label'].values)
 
     # Summary JSON

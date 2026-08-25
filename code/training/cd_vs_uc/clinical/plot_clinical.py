@@ -4,7 +4,7 @@ Plots for the clinical CD vs UC classifier.
 Produces a 3-panel figure:
   Panel A — AUC per fold + mean ± SD
   Panel B — Confusion matrix (aggregated across all folds)
-  Panel C — SHAP horizontal bar (top features, coloured by direction)
+  Panel C — SHAP beeswarm (dot colour = feature value, x = SHAP value)
 
 Run after train_clinical.py and shap_clinical.py.
 
@@ -22,6 +22,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.colors as mcolors
 from sklearn.metrics import confusion_matrix
 
 RESULTS_DIR = '/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/clinical/results'
@@ -38,6 +39,10 @@ BASE  = '#c3c2b7'
 UC_COLOR = '#c94040'
 CD_COLOR = '#2a78d6'
 NEUTRAL  = '#6baed6'
+
+# colormap: blue (low feature value) → red (high feature value)
+FEAT_CMAP = mcolors.LinearSegmentedColormap.from_list(
+    'feat', ['#2166ac', '#f7f7f7', '#d6604d'])
 
 FEATURE_LABELS = {
     'rectal_bleed':                   'Rectal bleeding',
@@ -92,12 +97,10 @@ def panel_auc(ax, fold_df):
     bars = ax.bar(x, aucs, width=0.55, color=NEUTRAL,
                   edgecolor=SURF, linewidth=0.8, zorder=3)
 
-    # Value labels on bars
     for xi, auc in zip(x, aucs):
         ax.text(xi, auc + 0.005, f'{auc:.3f}',
                 ha='center', va='bottom', fontsize=8, color=INK2)
 
-    # Mean ± SD line
     ax.axhline(mean_auc, color=CD_COLOR, linewidth=1.4, linestyle='--', zorder=4)
     ax.axhspan(mean_auc - std_auc, mean_auc + std_auc,
                color=CD_COLOR, alpha=0.10, zorder=2)
@@ -105,7 +108,6 @@ def panel_auc(ax, fold_df):
             f'Mean {mean_auc:.3f} ± {std_auc:.3f}',
             ha='right', fontsize=8, color=CD_COLOR, fontweight='bold')
 
-    # Chance line
     ax.axhline(0.5, color=MUTED, linewidth=0.8, linestyle=':', zorder=2)
     ax.text(len(folds) - 0.45, 0.502, 'Chance', ha='right',
             fontsize=7, color=MUTED)
@@ -125,7 +127,6 @@ def panel_auc(ax, fold_df):
 # ── Panel B: Confusion matrix ──────────────────────────────────────────────────
 
 def panel_cm(ax, preds_df):
-    # Aggregate predictions: one row per patient (mode of pred_label across folds)
     pat = preds_df.groupby('patient_id').agg(
         true_label=('true_label', 'first'),
         pred_label=('pred_label', lambda x: x.mode()[0]),
@@ -160,46 +161,94 @@ def panel_cm(ax, preds_df):
             transform=ax.transAxes, ha='center', fontsize=8, color=MUTED)
 
 
-# ── Panel C: SHAP bar ──────────────────────────────────────────────────────────
+# ── Panel C: SHAP beeswarm ─────────────────────────────────────────────────────
 
-def panel_shap(ax, shap_df):
-    top = shap_df.head(15).copy()
-    top = top.iloc[::-1].reset_index(drop=True)   # flip for horizontal bar
+def beeswarm_simple(values, y_center=0.0, bandwidth=0.38):
+    """Fast approximate beeswarm using histogram-style binning."""
+    n = len(values)
+    if n == 0:
+        return np.full(n, y_center)
 
-    labels = [FEATURE_LABELS.get(f, f) for f in top['feature']]
-    values = top['mean_abs_shap'].values
-    colors = [UC_COLOR if d == 'UC' else CD_COLOR for d in top['direction']]
+    n_bins = max(20, n // 8)
+    counts, edges = np.histogram(values, bins=n_bins)
+    bin_idx = np.digitize(values, edges[:-1]) - 1
+    bin_idx = np.clip(bin_idx, 0, n_bins - 1)
 
-    y = np.arange(len(top))
-    ax.barh(y, values, height=0.6, color=colors, edgecolor=SURF, linewidth=0.8)
+    yp = np.zeros(n)
+    for b in range(n_bins):
+        mask = bin_idx == b
+        k = mask.sum()
+        if k == 0:
+            continue
+        if k == 1:
+            yp[mask] = 0.0
+        else:
+            spread = bandwidth * min(1.0, k / 8.0)
+            positions = np.linspace(-spread, spread, k)
+            np.random.shuffle(positions)
+            yp[mask] = positions
 
-    max_v = values.max()
-    for i, (val, row) in enumerate(zip(values, top.itertuples())):
-        ax.text(val + max_v * 0.01, i, f'{val:.4f}',
-                va='center', ha='left', fontsize=7.5, color=INK2)
-        tag = f'↑{row.direction}'
-        tag_color = UC_COLOR if row.direction == 'UC' else CD_COLOR
-        ax.text(val + max_v * 0.01, i - 0.3, tag,
-                va='center', ha='left', fontsize=6.5,
-                color=tag_color, fontweight='bold')
+    return yp + y_center
 
-    ax.set_yticks(y)
-    ax.set_yticklabels(labels, fontsize=9, color=INK)
-    ax.set_xlabel('Mean |SHAP value|', fontsize=9, color=INK2)
-    ax.set_xlim(0, max_v * 1.4)
-    ax.set_title('C   SHAP feature importance\n(mean |SHAP| across 5 folds)',
+
+def panel_beeswarm(ax, npz_path, n_patients):
+    data = np.load(npz_path, allow_pickle=True)
+    shap_vals  = data['shap_values']    # (n_samples, n_features), sorted descending
+    feat_vals  = data['feature_values'] # (n_samples, n_features)
+    feat_names = data['feature_names'].tolist()
+
+    n_samples, n_features = shap_vals.shape
+    n = n_features
+
+    np.random.seed(42)
+
+    for row_idx in range(n):
+        y_center = row_idx  # bottom=0 → top=n-1
+
+        # col 0 = most important → top row (row_idx = n-1)
+        sv = shap_vals[:, (n - 1 - row_idx)]
+        fv = feat_vals[:, (n - 1 - row_idx)]
+
+        fmin, fmax = np.nanpercentile(fv, 1), np.nanpercentile(fv, 99)
+        if fmax > fmin:
+            fv_norm = np.clip((fv - fmin) / (fmax - fmin), 0.0, 1.0)
+        else:
+            fv_norm = np.full_like(fv, 0.5)
+
+        y_jitter = beeswarm_simple(sv, y_center=y_center, bandwidth=0.38)
+        colors = FEAT_CMAP(fv_norm)
+        ax.scatter(sv, y_jitter, s=4.0 ** 2 * 0.8, c=colors,
+                   alpha=0.65, linewidths=0.0, zorder=3, rasterized=True)
+
+    ax.axvline(0, color=MUTED, lw=0.7, ls='--', zorder=2)
+
+    y_labels = [FEATURE_LABELS.get(feat_names[n - 1 - i], feat_names[n - 1 - i])
+                for i in range(n)]
+    ax.set_yticks(range(n))
+    ax.set_yticklabels(y_labels, fontsize=8, color=INK)
+    ax.set_ylim(-0.6, n - 0.4)
+
+    ax.set_xlabel('SHAP value  (← CD  |  UC →)', fontsize=9, color=INK2)
+    ax.tick_params(axis='x', labelsize=7, colors=INK2, width=0.6, length=3)
+    ax.tick_params(axis='y', length=0)
+    ax.spines['bottom'].set_linewidth(0.6)
+    ax.spines['bottom'].set_color(MUTED)
+    ax.spines[['top', 'right', 'left']].set_visible(False)
+    ax.xaxis.grid(True, color=GRID, linewidth=0.4, zorder=0)
+    ax.set_axisbelow(True)
+
+    ax.set_title(f'C   SHAP feature importance\nn = {n_patients} patients',
                  fontsize=10, fontweight='bold', color=INK, loc='left', pad=6)
-    ax.xaxis.grid(True, color=GRID, linewidth=0.4)
-    ax.yaxis.grid(False)
-    ax.spines['left'].set_color(BASE)
-    ax.spines['bottom'].set_color(BASE)
 
-    handles = [
-        mpatches.Patch(color=UC_COLOR, label='↑ UC  (higher in UC)'),
-        mpatches.Patch(color=CD_COLOR, label='↑ CD  (higher in CD)'),
-    ]
-    ax.legend(handles=handles, fontsize=8, frameon=True, framealpha=0.9,
-              edgecolor=GRID, loc='lower right')
+    sm = plt.cm.ScalarMappable(cmap=FEAT_CMAP, norm=mcolors.Normalize(0, 1))
+    sm.set_array([])
+    cbar = ax.figure.colorbar(sm, ax=ax, orientation='vertical',
+                               fraction=0.03, pad=0.02, aspect=30,
+                               ticks=[0, 0.5, 1])
+    cbar.set_ticklabels(['low', 'mid', 'high'], fontsize=6, color=INK2)
+    cbar.set_label('Feature value', fontsize=6.5, color=INK2)
+    cbar.outline.set_linewidth(0.4)
+    cbar.ax.tick_params(length=2, width=0.5, labelsize=6)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -210,7 +259,7 @@ def main():
 
     fold_df  = pd.read_csv(os.path.join(RESULTS_DIR, 'clinical_fold_metrics.csv'))
     preds_df = pd.read_csv(os.path.join(RESULTS_DIR, 'clinical_patient_predictions.csv'))
-    shap_df  = pd.read_csv(os.path.join(SHAP_DIR, 'shap_clinical.csv'))
+    npz_path = os.path.join(SHAP_DIR, 'shap_clinical_values.npz')
 
     with open(os.path.join(SHAP_DIR, 'shap_clinical_summary.json')) as f:
         summary = json.load(f)
@@ -219,7 +268,7 @@ def main():
     mean_auc   = summary['auc']
     std_auc    = summary['std_auc']
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 7))
     fig.patch.set_facecolor(SURF)
     fig.suptitle(
         f'Clinical variables — CD vs UC  ·  At-20-cm matched cohort  ·  '
@@ -229,7 +278,7 @@ def main():
 
     panel_auc(axes[0], fold_df[fold_df['strategy'] == 'clinical'])
     panel_cm(axes[1], preds_df[preds_df['strategy'] == 'clinical'])
-    panel_shap(axes[2], shap_df)
+    panel_beeswarm(axes[2], npz_path, n_patients)
 
     fig.tight_layout(w_pad=3)
 
