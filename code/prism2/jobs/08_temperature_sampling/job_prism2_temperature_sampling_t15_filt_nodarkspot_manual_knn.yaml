@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-uamp-no-darkspot
+  name: kgbk271-prism2-temp-sampling-t15-manual-knn
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,9 +36,11 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/run_prism2_uamp.py \
-                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/features_virchow2 \
-                --results_root /home/jovyan/kgbk271-ibd-volume/results/prism2_no_darkspot \
+                /home/jovyan/ibdplexus/code/prism2/17_run_prism2_temperature_sampling.py \
+                --temperature 2.0 \
+                --n_samples 50 \
+                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2 \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/temperature_sampling \
                 --gpu 0 \
                 --batch_size 4 \
                 --skip_errors
@@ -69,6 +71,8 @@ spec:
             - name: TRANSFORMERS_OFFLINE
               value: "1"
             - name: HF_DATASETS_OFFLINE
+              value: "1"
+            - name: PYTHONUNBUFFERED
               value: "1"
           volumeMounts:
             - name: dshm

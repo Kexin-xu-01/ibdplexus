@@ -3,7 +3,7 @@ Compute gradient saliency for all 11 UAMP questions on a single slide,
 then produce per-question figures: heatmap overlay + top-N patches.
 
 Usage:
-    python prism2_saliency_uamp.py --slide 10407210HE1
+    python prism2_saliency_umap.py --slide 10407210HE1
 """
 
 import argparse
@@ -25,7 +25,7 @@ MODEL_PATH      = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
 FEAT_DIR        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
 THUMB_DIR       = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/visualization")
 WSI_DIR         = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
-OUT_ROOT        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_saliency_uamp")
+OUT_ROOT        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_saliency_umap")
 
 PATCH_PX = 672   # level-0 patch size
 N_PATCHES = 8    # top patches per question

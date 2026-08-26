@@ -39,24 +39,24 @@ Outputs to `20x_224px_0px_overlap/prism2_saliency_{base|yesno}/`:
 - `<slide>.h5` — datasets: `saliency` (N, norm. 0–1), `saliency_raw` (N), `coords` (N×2)
 - `<slide>.png` — spatial heatmap on WSI thumbnail
 
-### `prism2_saliency_uamp.py`
+### `prism2_saliency_umap.py`
 All 11 UAMP histological questions for a single slide. Loads model once, loops over questions.
 ```bash
 # GPU job (compute only — recommended)
-python prism2_saliency_uamp.py --slide 10407210HE1 --gpu 0 --compute-only
+python prism2_saliency_umap.py --slide 10407210HE1 --gpu 0 --compute-only
 
 # Visualization only (reads cached h5, no model needed — fast)
-python prism2_saliency_uamp.py --slide 10407210HE1 --viz-only
+python prism2_saliency_umap.py --slide 10407210HE1 --viz-only
 ```
-Outputs to `20x_224px_0px_overlap/prism2_saliency_uamp/<slide>/`:
+Outputs to `20x_224px_0px_overlap/prism2_saliency_umap/<slide>/`:
 - `<N>_<Term>.h5` — saliency scores + p_yes in attrs
 - `<N>_<Term>.png` — heatmap overlay + top-8 patches at level-0 (60×)
 - `all_questions.png` — all 11 questions stacked
 
 ### Kubernetes GPU job
 ```bash
-kubectl apply -f /home/jovyan/ibdplexus/code/prism2/job_prism2_saliency_uamp.yaml
-kubectl logs -n ibd-plexus-research -l job-name=kgbk271-prism2-saliency-uamp -c prism2 -f
+kubectl apply -f /home/jovyan/ibdplexus/code/prism2/job_prism2_saliency_umap.yaml
+kubectl logs -n ibd-plexus-research -l job-name=kgbk271-prism2-saliency-umap -c prism2 -f
 ```
 The job runs `--compute-only`; run `--viz-only` locally afterward for plotting.
 
@@ -89,7 +89,7 @@ The job runs `--compute-only`; run `--viz-only` locally afterward for plotting.
 .../trident_processed/20x_224px_0px_overlap/
   prism2_saliency_base/          # base embedding target
   prism2_saliency_yesno/         # single yesno question
-  prism2_saliency_uamp/
+  prism2_saliency_umap/
     10407210HE1/
       01_Inflammation_involvement.png
       ...

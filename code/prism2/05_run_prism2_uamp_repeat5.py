@@ -11,8 +11,8 @@ Outputs:
   <OUT_DIR>/reproducibility_summary.csv — per-concept mean SD (± across slides)
 
 Usage:
-  python run_prism2_uamp_repeat5.py
-  python run_prism2_uamp_repeat5.py --n_runs 5 --batch_size 4 --gpu 0
+  python run_prism2_umap_repeat5.py
+  python run_prism2_umap_repeat5.py --n_runs 5 --batch_size 4 --gpu 0
 """
 
 import argparse

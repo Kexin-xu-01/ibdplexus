@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-uamp-tissue-threshold-15
+  name: kgbk271-prism2-umap-tissue-threshold-15-filtered
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,9 +36,9 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/run_prism2_uamp.py \
-                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15/20x_224px_0px_overlap/features_virchow2 \
-                --results_root /home/jovyan/kgbk271-ibd-volume/results/prism2_tissue_threshold_15 \
+                /home/jovyan/ibdplexus/code/prism2/run_prism2_umap.py \
+                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered/20x_224px_0px_overlap/features_virchow2 \
+                --results_root /home/jovyan/kgbk271-ibd-volume/results/prism2_tissue_threshold_15_filtered \
                 --gpu 0 \
                 --batch_size 4 \
                 --skip_errors

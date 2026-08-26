@@ -551,10 +551,10 @@ def main():
 
     # Join UAMP P(Yes) scores (left join — NaN for slides not yet scored)
     if UAMP_CSV.exists():
-        uamp = pd.read_csv(UAMP_CSV, index_col="slide")
-        uamp.index.name = "slide_id"
-        available = [c for c in UAMP_COLS if c in uamp.columns]
-        df = df.join(uamp[available], how="left")
+        scores = pd.read_csv(UAMP_CSV, index_col="slide")
+        scores.index.name = "slide_id"
+        available = [c for c in UAMP_COLS if c in scores.columns]
+        df = df.join(scores[available], how="left")
         n_uamp = df[UAMP_COLS[0]].notna().sum()
         print(f"  Joined UAMP scores for {n_uamp}/{len(df)} slides")
     else:

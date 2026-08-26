@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-uamp-repeat5-t15-filt-nodarkspot
+  name: kgbk271-prism2-umap-repeat5-t15-filt-nodarkspot
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/run_prism2_uamp_repeat5.py \
+                /home/jovyan/ibdplexus/code/prism2/run_prism2_umap_repeat5.py \
                 --n_runs 5 \
                 --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/features_virchow2 \
                 --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_tissue_threshold_15_filtered_no_darkspot/repeat_five_times \

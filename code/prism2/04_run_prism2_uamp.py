@@ -5,11 +5,11 @@ For each slide, asks "Is <term> present?" for every term in UAMP_TERMS and
 saves P(Yes) scores to a wide CSV (one row per slide, one column per term).
 
 Outputs:
-  <RESULTS_ROOT>/uamp_report.csv  — slide + one p_yes column per term
+  <RESULTS_ROOT>/umap_report.csv  — slide + one p_yes column per term
 
 Usage:
-  python run_prism2_uamp.py
-  python run_prism2_uamp.py --batch_size 2 --gpu 1
+  python run_prism2_umap.py
+  python run_prism2_umap.py --batch_size 2 --gpu 1
 """
 
 import argparse

@@ -30,3 +30,7 @@ CLAUDE.md
 
 # IDE
 .vscode/
+
+# Generated outputs (not code)
+code/graphify-out/
+results/

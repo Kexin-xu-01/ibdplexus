@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-saliency-uamp
+  name: kgbk271-prism2-umap-no-darkspot
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,10 +36,12 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/prism2_saliency_uamp.py \
-                --slide 10407210HE1 \
+                /home/jovyan/ibdplexus/code/prism2/run_prism2_umap.py \
+                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/features_virchow2 \
+                --results_root /home/jovyan/kgbk271-ibd-volume/results/prism2_no_darkspot \
                 --gpu 0 \
-                --compute-only
+                --batch_size 4 \
+                --skip_errors
           resources:
             requests:
               cpu: "8"
