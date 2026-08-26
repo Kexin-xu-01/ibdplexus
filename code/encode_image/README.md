@@ -204,18 +204,7 @@ python 09_run_prism2.py \
   prism2_diagnostic/<slide>.h5  (3072-d, float32)
 ```
 
-**Shell launchers** (convenience wrappers around `09_run_prism2.py`):
-
-| Script | Dataset |
-|--------|---------|
-| `10_run_prism2.sh` | `trident_processed` (default) |
-| `11_run_prism2_tissue_threshold_15_filtered.sh` | `tissue_threshold_15_filtered` |
-
-```bash
-bash 10_run_prism2.sh
-# or
-bash 11_run_prism2_tissue_threshold_15_filtered.sh
-```
+**Shell launchers** for older datasets (moved to `_deprecated/` — use K8s jobs in `../prism2/jobs/01_embeddings/` for the current `manual_knn` dataset):
 
 **Model path:** `/home/jovyan/shared-data/users/kexin/models/VLM/prism2`
 
@@ -275,3 +264,5 @@ separately via the K8s jobs in `../prism2/jobs/01_embeddings/`.
 | `convert_vsi_to_tiff.py` | Uses JPEG compression and a fixed 4-level pyramid; superseded by `02_convert_missing_to_tiff.py` which produces LZW pyramids matching the `tiff_mpp_corrected/` format |
 | `check_tiff_permission.py` | Used `os.access()` which gives wrong results on NFS+ACL mounts; `01_correct_mpp.py` tries to actually open each file instead |
 | `run_trident_virchow2_vsi.sh` | Ran TRIDENT directly on raw VSI files; superseded by the convert-then-extract approach |
+| `10_run_prism2.sh` | Launcher for `trident_processed` (original unfiltered dataset); use K8s job in `../prism2/jobs/01_embeddings/` for current dataset |
+| `11_run_prism2_tissue_threshold_15_filtered.sh` | Launcher for intermediate `tissue_threshold_15_filtered` dataset; superseded |

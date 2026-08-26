@@ -24,6 +24,8 @@ Input
   [Step 2a] Dark-spot patch filter → tissue_threshold_15_filtered_no_darkspot/
       │
   [Step 3]  UMAP annotation + KNN → tissue_threshold_15_filtered_no_darkspot_manual_knn/
+      │
+  [Step 4]  Intensity filter + cluster QC + build H5s → tissue_threshold_15_filtered/
 ```
 
 ---
@@ -57,6 +59,11 @@ image_qc/
 │   ├── 02_qc_find_nn.py        # KNN expansion of manually annotated bad patches
 │   ├── 03_apply_knn_exclusion.py  # Apply merged exclusion list to feature H5s
 │   └── report_patch_qc.md      # Detailed KNN methodology and iteration log
+│
+├── 04_intensity_cluster/       # Step 4: Intensity filter + cluster QC → tissue_threshold_15_filtered
+│   ├── 01_intensity_filter.py  # Compute mean RGB per patch → patch_intensity.parquet
+│   ├── 02_cluster_qc.py        # PCA + K-means clustering → cluster_qc.html (manual curation)
+│   └── 03_make_filtered_features.py  # Build filtered H5 feature set
 │
 └── _deprecated/                # Superseded or unused top-level scripts/folders
     ├── blur_analysis.py        # Replaced by 01_laplacien/01_blur_analysis.py
@@ -238,12 +245,67 @@ Applies the merged `exclusion_list_merged.csv` to all filtered feature H5 files,
 
 ---
 
+## Step 4 — Intensity Filter + Cluster QC + Build Filtered Features (`04_intensity_cluster/`)
+
+These three scripts construct the `tissue_threshold_15_filtered` feature set, which feeds into Steps 2 and 3 above. They run once during dataset construction.
+
+### Step 4a — Patch intensity filter
+
+**Script:** `01_intensity_filter.py`
+
+Computes mean RGB intensity per patch by reading a small crop from the pyramid level. Generates `patch_intensity.parquet` which is used as a faint-tissue filter in Step 4c.
+
+```bash
+conda activate trident
+python 04_intensity_cluster/01_intensity_filter.py
+```
+
+**Output:** `results/cluster_qc/patch_intensity.parquet`
+
+### Step 4b — Cluster QC (manual curation)
+
+**Script:** `02_cluster_qc.py`
+
+PCA (2560 → 50d) → MiniBatch K-means (20 clusters) on a sample of Virchow2 patch features. Generates an interactive HTML with 9 representative thumbnails per cluster so artifact clusters can be identified manually.
+
+```bash
+conda activate trident
+python 04_intensity_cluster/02_cluster_qc.py \
+    [--feat_dir PATH]       # default: tissue_threshold_15/features_virchow2
+    [--n_clusters 20]
+    [--out_dir PATH]        # default: results/cluster_qc/
+```
+
+**Output:** `results/cluster_qc/patch_clusters.parquet` + `cluster_qc.html`
+
+### Step 4c — Build filtered feature set
+
+**Script:** `03_make_filtered_features.py`
+
+Combines the Laplacian-filtered patch coordinates (from Step 1) with the intensity threshold to produce the `tissue_threshold_15_filtered` feature H5 files.
+
+```bash
+conda activate trident
+python 04_intensity_cluster/03_make_filtered_features.py
+```
+
+**Inputs:**
+- `tissue_threshold_15/features_virchow2/` — original features
+- `tissue_threshold_15_remove_artifact/laplacien_t100/` — Laplacian-filtered coords (from Step 1)
+- `results/cluster_qc/patch_intensity.parquet` — from Step 4a
+
+**Output:** `tissue_threshold_15_filtered/20x_224px_0px_overlap/features_virchow2/`
+
+**Removed:** 13,263 patches (1.53%) via intensity threshold ≥ 211.8 (p98)
+
+---
+
 ## Filtering Summary
 
 | Step | Filter | Removed | % of total |
 |------|--------|--------:|----------:|
 | 1 | Laplacian blur (LV < 100) | 4,977 | 0.57% |
-| — | Faint/white intensity (mean ≥ 211.8) — applied in `prism2/make_filtered_features.py` | 13,263 | 1.53% |
+| 4a | Faint/white intensity (mean ≥ 211.8) — applied in `04_intensity_cluster/03_make_filtered_features.py` | 13,263 | 1.53% |
 | 2a | GrandQC dark spots (> 10% pixels) | 1,727 | 0.20% |
 | 3c | Manual KNN exclusion (net new) | 6,541 | 0.76% |
 | **—** | **Final retained** | **838,562** | **96.94%** |

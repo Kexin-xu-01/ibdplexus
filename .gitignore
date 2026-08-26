@@ -34,3 +34,7 @@ CLAUDE.md
 # Generated outputs (not code)
 code/graphify-out/
 results/
+*.png
+*.pdf
+*.html
+*.html.gz
