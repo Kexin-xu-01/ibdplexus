@@ -43,7 +43,7 @@ MAPPING_CSV = ('/home/jovyan/shared-data/ibd_plexus_sparc_raw/genestack/transcri
                'ibd_21183_omics_patient_mapping_genestack.csv')
 SAMPLE_META = ('/home/jovyan/shared-data/ibd_plexus_sparc_raw/genestack/transcriptomics/'
                'GSF1478941_sample_combined_from1stRun.tsv__metadata.csv')
-OUT_DIR     = '/home/jovyan/kgbk271-ibd-volume/results/rna/umap'
+OUT_DIR     = '/home/jovyan/kgbk271-ibd-volume/results/rna/vst_combat'
 COORDS_NPZ  = os.path.join(OUT_DIR, 'umap_rna_coords.npz')
 
 N_PCA      = 50
@@ -94,6 +94,20 @@ PALETTES = {
         'Pancolitis (E3)':      '#F7B731',
         'Unknown':              '#BBBBBB',
     },
+    'sequencing_batch': {
+        'first':   '#4C72B0',
+        'later':   '#DD8452',
+        'Unknown': '#BBBBBB',
+    },
+    'collection_year': {
+        '2017':    '#fee5d9',
+        '2018':    '#fcbba1',
+        '2019':    '#fc9272',
+        '2020':    '#fb6a4a',
+        '2021':    '#de2d26',
+        '2022':    '#a50f15',
+        'Unknown': '#BBBBBB',
+    },
 }
 
 TITLES = {
@@ -102,6 +116,8 @@ TITLES = {
     'macroscopic_appearance': 'Macroscopic Appearance',
     'disease_activity':      'Disease Activity (Mayo 6)',
     'disease_location':      'Disease Location / Extent',
+    'sequencing_batch':      'Sequencing Batch',
+    'collection_year':       'Sample Collection Year',
 }
 
 
@@ -136,12 +152,17 @@ def load_metadata(sample_ids):
 
     merged = mapping.merge(
         smeta[['SampleID', 'diagnosis', 'macroscopic_appearance',
-               'MAYO6_CATEGORY', 'disease_location', 'Sample QC']].rename(
+               'MAYO6_CATEGORY', 'disease_location', 'batch', 'Sample QC']].rename(
             columns={'macroscopic_appearance': 'macro_smeta'}),
         on='SampleID', how='left')
     # prefer SAMPLE_META macroscopic_appearance; fall back to MAPPING_CSV version
     merged['macroscopic_appearance'] = merged['macro_smeta'].where(
         merged['macro_smeta'].notna(), merged.get('macroscopic_appearance', pd.NA))
+
+    # extract collection year from sample_collected_date (format: 08-JUN-2021)
+    merged['_year'] = pd.to_datetime(
+        merged['sample_collected_date'], format='%d-%b-%Y', errors='coerce'
+    ).dt.year
 
     # normalise diagnosis
     def norm_dx(d):
@@ -206,6 +227,12 @@ def load_metadata(sample_ids):
         return v if v in known else 'Other'
     merged['biopsy_norm'] = merged['characteristics_bio_material'].map(norm_bio)
 
+    def norm_batch(v):
+        return v.strip() if isinstance(v, str) and v.strip() in ('first', 'later') else 'Unknown'
+    merged['batch_norm'] = merged['batch'].map(norm_batch)
+    merged['year_norm']  = merged['_year'].apply(
+        lambda y: str(int(y)) if pd.notna(y) else 'Unknown')
+
     lookup = merged.drop_duplicates('SampleID').set_index('SampleID')
 
     rows = []
@@ -213,27 +240,28 @@ def load_metadata(sample_ids):
         if sid in lookup.index:
             r = lookup.loc[sid]
             rows.append({
-                'sample_id':             sid,
-                'diagnosis':             r['diagnosis_norm'],
-                'biopsy_location':       r['biopsy_norm'],
+                'sample_id':              sid,
+                'diagnosis':              r['diagnosis_norm'],
+                'biopsy_location':        r['biopsy_norm'],
                 'macroscopic_appearance': r['macro_norm'],
-                'disease_activity':      r['disease_activity_norm'],
-                'disease_location':      r['disease_loc_norm'],
-                'qc':                    str(r.get('Sample QC', '')),
+                'disease_activity':       r['disease_activity_norm'],
+                'disease_location':       r['disease_loc_norm'],
+                'sequencing_batch':       r['batch_norm'],
+                'collection_year':        r['year_norm'],
             })
         else:
             rows.append({
-                'sample_id':             sid,
-                'diagnosis':             'Unknown',
-                'biopsy_location':       'Unknown',
+                'sample_id':              sid,
+                'diagnosis':              'Unknown',
+                'biopsy_location':        'Unknown',
                 'macroscopic_appearance': 'Unknown',
-                'disease_activity':      'Unknown',
-                'disease_location':      'Unknown',
-                'qc':                    'unknown',
+                'disease_activity':       'Unknown',
+                'disease_location':       'Unknown',
+                'sequencing_batch':       'Unknown',
+                'collection_year':        'Unknown',
             })
     df = pd.DataFrame(rows).set_index('sample_id')
-    for col in ['diagnosis', 'biopsy_location', 'macroscopic_appearance',
-                'disease_activity', 'disease_location']:
+    for col in PALETTES:
         df[col] = df[col].fillna('Unknown')
     return df
 
@@ -340,7 +368,9 @@ def make_html(df, xy, out_path):
                     f'Biopsy: {r["biopsy_location"]}<br>'
                     f'Macro: {r["macroscopic_appearance"]}<br>'
                     f'Activity: {r["disease_activity"]}<br>'
-                    f'Location: {r["disease_location"]}'
+                    f'Location: {r["disease_location"]}<br>'
+                    f'Batch: {r["sequencing_batch"]}<br>'
+                    f'Year: {r["collection_year"]}'
                 ), axis=1),
                 hovertemplate='%{text}<extra></extra>',
                 legendgroup=col,
