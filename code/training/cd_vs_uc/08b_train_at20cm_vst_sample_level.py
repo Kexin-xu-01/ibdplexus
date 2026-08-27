@@ -56,6 +56,10 @@ MAPPING_CSV = os.path.join(TRANSCRIPTOMICS_DIR,
 SAMPLE_META = os.path.join(TRANSCRIPTOMICS_DIR,
               'GSF1478941_sample_combined_from1stRun.tsv__metadata.csv')
 CV_PATIENTS = '/home/jovyan/kgbk271-ibd-volume/training/cv_splits_patients.csv'
+# Restrict to the 817-patient rna_visit cohort (RNA+imaging matched within 7 days).
+# Set to None to use all 847 at-20-cm RNA patients.
+RESTRICT_PATIENTS_CSV = os.path.join(os.path.dirname(__file__),
+                         'cohorts/at20cm_rna_visit_817_patients.csv')
 OUT_DIR     = ('/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/'
                '08_at20cm_vst_sample_level/results')
 
@@ -100,6 +104,11 @@ def load_vst_samples(cv_patients):
     """
     pat_df  = cv_patients.set_index('patient_id')
     cv_pids = set(pat_df.index)
+
+    if RESTRICT_PATIENTS_CSV:
+        restrict_pids = set(pd.read_csv(RESTRICT_PATIENTS_CSV)['patient_id'])
+        cv_pids = cv_pids & restrict_pids
+        print(f'  Restricting to {len(cv_pids)} patients from {RESTRICT_PATIENTS_CSV}')
 
     mapping     = pd.read_csv(MAPPING_CSV)
     sample_meta = pd.read_csv(SAMPLE_META).rename(columns={'Name': 'SampleID'})
@@ -322,7 +331,8 @@ def main():
         with open(tpm_summary_path) as f:
             tpm_s = json.load(f)[0]
         vst_s = summary_list[0]
-        print('\n\n=== VST vs TPM COMPARISON (same 847 patients, same 1068 samples) ===')
+        print(f'\n\n=== VST vs TPM COMPARISON (same {vst_s["n_patients"]} patients, '
+              f'same {vst_s["n_samples"]} samples) ===')
         print(f"{'Method':<30} {'Samples':<9} {'Patients':<10} {'AUC':<22} {'AP':<22} {'Accuracy'}")
         print('-' * 100)
         print(f"  {'VST + CombatSeq (leaky)':<28} {vst_s['n_samples']:<9} {vst_s['n_patients']:<10} "
