@@ -26,7 +26,7 @@ CLASS_TOKEN_DIM = 1280
 
 FEAT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
 MODEL_PATH   = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
-RESULTS_ROOT = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2")
+RESULTS_ROOT = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn")
 
 UAMP_TERMS = [
     "Inflammation involvement",

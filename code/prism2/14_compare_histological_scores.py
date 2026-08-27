@@ -27,11 +27,11 @@ from plotly.subplots import make_subplots
 RESULTS_ROOT = Path("/home/jovyan/kgbk271-ibd-volume/results")
 
 DATASETS = [
-    ("trident_processed",    RESULTS_ROOT / "prism2"                          / "prism2_histological_score.csv"),
-    ("tissue_threshold_15",  RESULTS_ROOT / "prism2_tissue_threshold_15"      / "prism2_histological_score.csv"),
-    ("filtered",             RESULTS_ROOT / "prism2_tissue_threshold_15_filtered" / "prism2_histological_score.csv"),
-    ("no_darkspot",          RESULTS_ROOT / "prism2_no_darkspot"              / "prism2_histological_score.csv"),
-    ("manual_knn",           RESULTS_ROOT / "prism2_manual_knn"               / "prism2_histological_score.csv"),
+    ("trident_processed",    RESULTS_ROOT / "_deprecated/prism2_no_tissue_filter"           / "prism2_histological_score.csv"),
+    ("tissue_threshold_15",  RESULTS_ROOT / "_deprecated/prism2_tissue_threshold_15"        / "prism2_histological_score.csv"),
+    ("filtered",             RESULTS_ROOT / "_deprecated/prism2_tissue_threshold_15_filtered" / "prism2_histological_score.csv"),
+    ("no_darkspot",          RESULTS_ROOT / "_deprecated/prism2_no_darkspot"                / "prism2_histological_score.csv"),
+    ("manual_knn",           RESULTS_ROOT / "prism2_manual_knn"                             / "prism2_histological_score.csv"),
 ]
 
 UAMP_COLS = [
@@ -255,7 +255,7 @@ def summary_csv(dfs: dict, out_path: Path):
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--out_dir", default=str(RESULTS_ROOT / "prism2" / "compare_histological_scores"))
+    p.add_argument("--out_dir", default=str(RESULTS_ROOT / "prism2_manual_knn" / "compare_histological_scores"))
     return p.parse_args()
 
 

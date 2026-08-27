@@ -33,17 +33,17 @@ All datasets live under `/home/jovyan/kgbk271-ibd-volume/data/processed/` and co
          │
          ▼  (image_qc adds dark-spot and KNN filters → manual_knn dataset)
          │
-[01] run_prism2_uamp.py           prism2_histological_score.csv
-[02] run_prism2_uamp_repeat5.py   reproducibility_stats.csv        ← optional
-[03] run_prism2_confidence_rating.py  confidence_rating.csv         ← optional
-[04] run_prism2_reports.py        prism2_reports.jsonl / .csv
+[01] 01_run_prism2_uamp.py           prism2_histological_score.csv
+[02] 02_run_prism2_uamp_repeat5.py   reproducibility_stats.csv        ← optional
+[03] 03_run_prism2_confidence_rating.py  confidence_rating.csv         ← optional
+[04] 04_run_prism2_reports.py        prism2_reports.jsonl / .csv
          │
          ▼
-[05] umap_embeddings.py           umap_prism2_{base,diagnostic}.html + _coords.npz
-[06] umap_uamp_scores.py          umap_scores_prism2_{base,diagnostic}.html
-[07] umap_reports.py              umap_prism2_diagnostic_reports.html + PNGs
-[08] umap_patch_viewer.py         <slide>_umap.html  (per-slide drill-down)
-[09] multi_slide_umap.py          all_slides_umap.html  (cross-cohort QC)
+[05] 05_umap_embeddings.py           umap_prism2_{base,diagnostic}.html + _coords.npz
+[06] 06_umap_uamp_scores.py          umap_scores_prism2_{base,diagnostic}.html
+[07] 07_umap_reports.py              umap_prism2_diagnostic_reports.html + PNGs
+[08] 08_umap_patch_viewer.py         <slide>_umap.html  (per-slide drill-down)
+[09] 09_multi_slide_umap.py          all_slides_umap.html  (cross-cohort QC)
          │
          ▼
 [10] prism2_saliency.py           <slide>.h5 + <slide>.png  (base or yes/no target)
@@ -70,7 +70,7 @@ Scores 11 UAMP histological terms per slide using PRISM2 `yes_no_score()`. Resum
 conda activate prism2
 python 01_run_prism2_uamp.py \
     --feat_dir PATH         # default: trident_processed/features_virchow2
-    --results_root PATH     # default: results/prism2/
+    --results_root PATH     # default: results/prism2_manual_knn/
     [--batch_size 4]        # slides per forward pass
     [--gpu 0]
 ```
@@ -134,7 +134,7 @@ Generates a natural-language pathology report for every slide. Safe to interrupt
 conda activate prism2
 python 04_run_prism2_reports.py \
     --feat_dir PATH         # default: trident_processed/features_virchow2
-    --results_root PATH     # default: results/prism2/
+    --results_root PATH     # default: results/prism2_manual_knn/
     [--prompt "Write a report"]
     [--out_dir PATH]        # auto: <results_root>/reports/<prompt_slug>/
     [--max_new_tokens 200]
@@ -159,7 +159,7 @@ Runs PCA → UMAP on PRISM2 base and/or diagnostic embeddings and saves interact
 conda activate trident
 python 05_umap_embeddings.py \
     [--job_dir PATH]        # TRIDENT job dir; default: trident_processed
-    [--out_dir PATH]        # default: <job_dir>/../../results/prism2/umap/
+    [--out_dir PATH]        # default: <job_dir>/../../results/prism2_manual_knn/umap/
     [--embeddings prism2_base prism2_diagnostic]
     [--n_neighbors 30]
     [--min_dist 0.25]
@@ -169,7 +169,7 @@ python 05_umap_embeddings.py \
 ```bash
 python 05_umap_embeddings.py \
     --job_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn \
-    --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/manual_knn
+    --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap
 ```
 
 **Output per embedding type:**
@@ -196,9 +196,9 @@ python 06_umap_uamp_scores.py \
 ```bash
 python 06_umap_uamp_scores.py \
     --uamp_csv results/prism2_manual_knn/prism2_histological_score.csv \
-    --coords_npz results/prism2/umap/manual_knn/umap_prism2_base_coords.npz \
-                 results/prism2/umap/manual_knn/umap_prism2_diagnostic_coords.npz \
-    --out_dir results/prism2/umap/manual_knn
+    --coords_npz results/prism2_manual_knn/umap/umap_prism2_base_coords.npz \
+                 results/prism2_manual_knn/umap/umap_prism2_diagnostic_coords.npz \
+    --out_dir results/prism2_manual_knn/umap
 ```
 
 **Output:** `umap_scores_<embed_name>.html` per coords file

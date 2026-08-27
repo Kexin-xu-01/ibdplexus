@@ -27,7 +27,7 @@ spec:
             - -c
             - |
               cp /home/jovyan/results/umap/umap_prism2_diagnostic_reports.html \
-                 /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/umap_prism2_diagnostic_reports.html && \
+                 /home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_no_tissue_filter/umap/umap_prism2_diagnostic_reports.html && \
               echo "done"
           resources:
             requests:

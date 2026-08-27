@@ -22,9 +22,9 @@ Outputs (one per coords_npz):
 Usage:
   python umap_scores.py \\
     --umap_csv  .../results/prism2_manual_knn/prism2_histological_score.csv \\
-    --coords_npz .../results/prism2/umap/manual_knn/umap_prism2_base_coords.npz \\
-                 .../results/prism2/umap/manual_knn/umap_prism2_diagnostic_coords.npz \\
-    --out_dir   .../results/prism2/umap/manual_knn
+    --coords_npz .../results/prism2_manual_knn/umap/umap_prism2_base_coords.npz \\
+                 .../results/prism2_manual_knn/umap/umap_prism2_diagnostic_coords.npz \\
+    --out_dir   .../results/prism2_manual_knn/umap
 """
 
 import argparse

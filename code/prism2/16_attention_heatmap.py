@@ -46,6 +46,10 @@ MODEL_PATH      = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
 DEFAULT_FEAT_DIR   = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2")
 DEFAULT_SCORES_CSV = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/prism2_histological_score.csv")
 DEFAULT_OUT_ROOT   = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/prism2_attention_heatmap")
+THUMB_DIR          = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/visualization")
+WSI_DIR            = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
+
+N_TOP_PATCHES = 8
 
 UAMP_COLS = [
     "inflammation_involvement",
@@ -84,13 +88,51 @@ def load_scores(csv_path: Path) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Visualisation
+# Visualisation helpers
+# ---------------------------------------------------------------------------
+
+def _make_overlay(thumb_np, heatmap_norm, coords, sx, sy, pw, ph, alpha=0.40, cmap=None):
+    """Blend attention colours onto H&E thumbnail."""
+    H, W = thumb_np.shape[:2]
+    bg      = thumb_np.astype(np.float32) / 255.0
+    overlay = np.zeros((H, W, 4), dtype=np.float32)
+    colors  = cmap(heatmap_norm)
+    for i, (x, y) in enumerate(coords):
+        x0 = int(round(x * sx)); y0 = int(round(y * sy))
+        x1 = min(W, x0 + int(round(pw)) + 1)
+        y1 = min(H, y0 + int(round(ph)) + 1)
+        overlay[y0:y1, x0:x1] = colors[i]
+    tissue = (overlay[..., 3] > 0)[..., None]
+    return np.clip(
+        np.where(tissue, (1 - alpha) * bg + alpha * overlay[..., :3], bg), 0, 1
+    )
+
+
+def _top_patches(wsi_path: Path, coords, heatmap_norm, n, patch_px):
+    """Return list of (RGB uint8 array, score) for the n highest-scoring tiles."""
+    try:
+        import openslide
+    except ImportError:
+        return []
+    top_idx = np.argsort(heatmap_norm)[::-1][:n]
+    sl = openslide.OpenSlide(str(wsi_path))
+    patches = []
+    for i in top_idx:
+        x, y = int(coords[i, 0]), int(coords[i, 1])
+        r = sl.read_region((x, y), 0, (patch_px, patch_px))
+        patches.append((np.array(r.convert("RGB")), float(heatmap_norm[i])))
+    sl.close()
+    return patches
+
+
+# ---------------------------------------------------------------------------
+# Main figure
 # ---------------------------------------------------------------------------
 
 def save_figure(
     out_path: Path,
-    heatmap_norm: np.ndarray,
-    coords: np.ndarray,
+    heatmap_norm: np.ndarray,   # (N,) [0,1]
+    coords: np.ndarray,         # (N,2) level-0 pixel coords
     meta: dict,
     slide: str,
     p_yes: dict[str, float],
@@ -100,52 +142,158 @@ def save_figure(
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
+        from matplotlib.patches import FancyBboxPatch
+        from PIL import Image
     except ImportError:
-        print("  [skip PNG] matplotlib not available")
+        print("  [skip PNG] matplotlib / PIL not available")
         return
 
+    bg       = "#141414"
+    cmap     = plt.cm.inferno
     patch_px = int(float(meta.get("patch_size_level0", 672)))
-    grid_col = (coords[:, 0] // patch_px).astype(int)
-    grid_row = (coords[:, 1] // patch_px).astype(int)
-    grid = np.full((int(grid_row.max()) + 1, int(grid_col.max()) + 1), np.nan, np.float32)
-    grid[grid_row, grid_col] = heatmap_norm
 
-    bg = "#141414"
-    fig = plt.figure(figsize=(14, 6), dpi=130, facecolor=bg)
-    gs  = gridspec.GridSpec(1, 2, figure=fig, wspace=0.06,
-                            left=0.02, right=0.98, top=0.92, bottom=0.08,
-                            width_ratios=[1, 1])
+    # --- load thumbnail ---
+    thumb_path = THUMB_DIR / f"{slide}.jpg"
+    if thumb_path.exists():
+        thumb_np = np.array(Image.open(thumb_path))
+        H, W = thumb_np.shape[:2]
+        l0w  = int(meta.get("level0_width",  W * patch_px))
+        l0h  = int(meta.get("level0_height", H * patch_px))
+        sx, sy = W / l0w, H / l0h
+        pw, ph = patch_px * sx, patch_px * sy
+        have_thumb = True
+    else:
+        have_thumb = False
 
-    ax_map = fig.add_subplot(gs[0, 0])
-    ax_map.set_facecolor("#000000")
-    im = ax_map.imshow(grid, cmap="inferno", vmin=0, vmax=1,
-                       interpolation="nearest", aspect="equal")
-    ax_map.set_title("Attention heatmap", color="white", fontsize=9)
-    ax_map.axis("off")
-    cb = plt.colorbar(im, ax=ax_map, fraction=0.04, pad=0.02)
-    cb.set_label("score (norm.)", color="white", fontsize=7)
-    cb.ax.yaxis.set_tick_params(color="white", labelsize=6)
-    plt.setp(cb.ax.yaxis.get_ticklabels(), color="white")
+    # --- build overlay ---
+    if have_thumb:
+        overlay = _make_overlay(thumb_np, heatmap_norm, coords, sx, sy, pw, ph,
+                                alpha=0.70, cmap=cmap)
 
-    ax_bar = fig.add_subplot(gs[0, 1])
+    # --- top patches ---
+    wsi_path = WSI_DIR / f"{slide}.tiff"
+    patches  = _top_patches(wsi_path, coords, heatmap_norm, N_TOP_PATCHES, patch_px) \
+               if wsi_path.exists() else []
+    n_patches = len(patches)
+
+    # --- layout ---
+    # Two rows: top (3 panels) + bottom (patches).  Bottom row only if patches exist.
+    top_h   = 5.5
+    bot_h   = 2.2 if n_patches else 0
+    fig_h   = top_h + bot_h + 0.4
+    fig     = plt.figure(figsize=(18, fig_h), dpi=130, facecolor=bg,
+                         layout="constrained")
+
+    if n_patches:
+        outer = gridspec.GridSpec(
+            2, 1, figure=fig, hspace=0.08,
+            height_ratios=[top_h, bot_h],
+        )
+        gs_top = gridspec.GridSpecFromSubplotSpec(
+            1, 3, subplot_spec=outer[0], wspace=0.04,
+            width_ratios=[2, 2, 1.6],
+        )
+        gs_bot = gridspec.GridSpecFromSubplotSpec(
+            1, n_patches, subplot_spec=outer[1], wspace=0.03
+        )
+    else:
+        outer  = gridspec.GridSpec(1, 1, figure=fig)
+        gs_top = gridspec.GridSpecFromSubplotSpec(
+            1, 3, subplot_spec=outer[0], wspace=0.04,
+            width_ratios=[2, 2, 1.6],
+        )
+        gs_bot = None
+
+    def _dark_ax(ax):
+        ax.set_facecolor(bg)
+        ax.axis("off")
+
+    # Panel 0 — raw H&E
+    ax_he = fig.add_subplot(gs_top[0, 0])
+    _dark_ax(ax_he)
+    if have_thumb:
+        ax_he.imshow(thumb_np)
+    ax_he.set_title("H&E", color="white", fontsize=9, pad=3)
+
+    # Panel 1 — attention overlay
+    ax_ov = fig.add_subplot(gs_top[0, 1])
+    _dark_ax(ax_ov)
+    if have_thumb:
+        ax_ov.imshow(overlay)
+        # Colorbar inset — anchored inside the overlay, lower-left corner
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        cax = inset_axes(ax_ov, width="3%", height="35%",
+                         loc="lower left", borderpad=0.8)
+        sm  = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 1))
+        cb  = plt.colorbar(sm, cax=cax)
+        cb.set_label("attn.", color="white", fontsize=5, labelpad=2)
+        cb.ax.yaxis.set_tick_params(color="white", labelsize=5)
+        plt.setp(cb.ax.yaxis.get_ticklabels(), color="white")
+        cb.outline.set_edgecolor("#555555")
+    else:
+        # fallback: grid raster
+        grid_col = (coords[:, 0] // patch_px).astype(int)
+        grid_row = (coords[:, 1] // patch_px).astype(int)
+        grid = np.full((int(grid_row.max()) + 1, int(grid_col.max()) + 1), np.nan, np.float32)
+        grid[grid_row, grid_col] = heatmap_norm
+        im = ax_ov.imshow(grid, cmap=cmap, vmin=0, vmax=1,
+                          interpolation="nearest", aspect="equal")
+        plt.colorbar(im, ax=ax_ov, fraction=0.04, pad=0.02)
+    ax_ov.set_title("Attention heatmap", color="white", fontsize=9, pad=3)
+
+    # Panel 2 — UAMP scores bar chart
+    ax_bar = fig.add_subplot(gs_top[0, 2])
     ax_bar.set_facecolor(bg)
-    labels = [c.replace("_", " ") for c in UAMP_COLS]
+    # Shortened display labels so they fit in one column
+    _LABEL_MAP = {
+        "inflammation_involvement":            "Inflammation",
+        "crypt_architectural_distortion":      "Crypt distortion",
+        "neutrophil_granulocytic_infiltration":"Neutrophils",
+        "crypt_abscesses":                     "Crypt abscesses",
+        "lymphoid_aggregates":                 "Lymphoid aggregates",
+        "histiocytic_granulomas":              "Granulomas",
+        "mucin_depletion":                     "Mucin depletion",
+        "pyloric_gland_metaplasia":            "Pyloric metaplasia",
+        "paneth_cell_metaplasia":              "Paneth metaplasia",
+        "neuronal_hyperplasia":                "Neuronal hyperpl.",
+        "muscular_hypertrophy":                "Muscular hypertrophy",
+    }
+    labels = [_LABEL_MAP.get(c, c.replace("_", " ")) for c in UAMP_COLS]
     vals   = [p_yes.get(c, float("nan")) for c in UAMP_COLS]
-    colors = ["#e05c5c" if (v == v and v > 0.5) else "#5c9ee0" for v in vals]
-    y_pos  = range(len(labels))
-    ax_bar.barh(list(y_pos), vals, color=colors, height=0.6)
+    bar_colors = ["#e05c5c" if (v == v and v > 0.5) else "#5c9ee0" for v in vals]
+    y_pos  = list(range(len(labels)))
+    ax_bar.barh(y_pos, vals, color=bar_colors, height=0.6)
     ax_bar.axvline(0.5, color="#888888", lw=0.8, ls="--")
     ax_bar.set_xlim(0, 1)
-    ax_bar.set_yticks(list(y_pos))
+    ax_bar.set_yticks(y_pos)
     ax_bar.set_yticklabels(labels, color="white", fontsize=7)
     ax_bar.set_xlabel("P(Yes)", color="white", fontsize=8)
     ax_bar.tick_params(axis="x", colors="white", labelsize=7)
     ax_bar.spines[:].set_color("#444444")
     ax_bar.set_facecolor(bg)
-    ax_bar.set_title("UAMP histology scores", color="white", fontsize=9)
+    ax_bar.set_title("UMAP histological scores", color="white", fontsize=9, pad=3)
+    ax_bar.margins(y=0.02)
+
+    # Bottom row — top-N patches
+    if n_patches and gs_bot is not None:
+        for i, (patch, score) in enumerate(patches):
+            ax_p = fig.add_subplot(gs_bot[0, i])
+            ax_p.imshow(patch)
+            ax_p.axis("off")
+            ax_p.text(0.04, 0.96, f"#{i+1}", transform=ax_p.transAxes,
+                      color="white", fontsize=7, fontweight="bold", va="top",
+                      bbox=dict(boxstyle="round,pad=0.15", fc="#00000099", ec="none"))
+            bar_w = max(0.02, min(score, 0.98))
+            ax_p.add_patch(FancyBboxPatch(
+                (0, 0), bar_w, 0.06, transform=ax_p.transAxes, clip_on=True,
+                boxstyle="square,pad=0", fc=cmap(score), ec="none", zorder=5,
+            ))
+            ax_p.text(0.5, 0.02, f"{score:.2f}", transform=ax_p.transAxes,
+                      color="white", fontsize=6, ha="center", va="bottom",
+                      fontweight="bold", zorder=6)
 
     fig.suptitle(f"{slide} — PRISM2 attention heatmap",
-                 color="white", fontsize=10, y=0.98)
+                 color="white", fontsize=10)
     fig.savefig(out_path, bbox_inches="tight", facecolor=bg, dpi=130)
     plt.close(fig)
     print(f"  saved PNG : {out_path.name}")

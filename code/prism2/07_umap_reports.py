@@ -18,9 +18,9 @@ Ground-truth variables added to HTML dropdown:
   diagnosis, normal_lesional, macroscopic_appearance, disease_activity_60, tissue_site
 
 Outputs:
-  results/prism2/umap/umap_prism2_diagnostic_reports.html
-  results/prism2/umap/umap_prism2_diagnostic_report_<var>.{png,pdf}
-  results/prism2/umap/umap_prism2_diagnostic_compare_<pair>.{png,pdf}
+  results/_deprecated/prism2_no_tissue_filter/umap/umap_prism2_diagnostic_reports.html
+  results/_deprecated/prism2_no_tissue_filter/umap/umap_prism2_diagnostic_report_<var>.{png,pdf}
+  results/_deprecated/prism2_no_tissue_filter/umap/umap_prism2_diagnostic_compare_<pair>.{png,pdf}
   results/metadata/slide_report_features.csv
 """
 
@@ -34,12 +34,12 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-JSONL_PATH  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_reports.jsonl")
-COORDS_NPZ  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/umap_prism2_diagnostic_coords.npz")
+JSONL_PATH  = Path("/home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_no_tissue_filter/prism2_reports.jsonl")
+COORDS_NPZ  = Path("/home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_no_tissue_filter/umap/umap_prism2_diagnostic_coords.npz")
 META_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_metadata.csv")
-UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_histological_score.csv")
-OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
-COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap/compare")
+UAMP_CSV    = Path("/home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_no_tissue_filter/prism2_histological_score.csv")
+OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_no_tissue_filter/umap")
+COMPARE_DIR = Path("/home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_no_tissue_filter/umap/compare")
 META_OUT    = Path("/home/jovyan/kgbk271-ibd-volume/results/metadata/slide_report_features.csv")
 PROMPT      = "write a report"
 

@@ -36,9 +36,9 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/umap_embeddings.py \
+                /home/jovyan/ibdplexus/code/prism2/05_umap_embeddings.py \
                 --job_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/manual_knn \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap \
                 --embeddings prism2_base prism2_diagnostic
           resources:
             requests:

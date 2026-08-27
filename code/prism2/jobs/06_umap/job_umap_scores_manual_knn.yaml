@@ -36,12 +36,12 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/umap_scores.py \
+                /home/jovyan/ibdplexus/code/prism2/06_umap_uamp_scores.py \
                 --umap_csv /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/prism2_histological_score.csv \
                 --coords_npz \
-                  /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/manual_knn/umap_prism2_base_coords.npz \
-                  /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/manual_knn/umap_prism2_diagnostic_coords.npz \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/manual_knn \
+                  /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap/umap_prism2_base_coords.npz \
+                  /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap/umap_prism2_diagnostic_coords.npz \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap \
                 --meta_csv /home/jovyan/kgbk271-ibd-volume/results/metadata/slide_metadata.csv
           resources:
             requests:

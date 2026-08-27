@@ -11,7 +11,7 @@ Outputs one interactive HTML per embedding type, each with a colour
 dropdown across: diagnosis, disease_activity, disease_location,
 macroscopic_appearance, crohn_phenotype, gender.
 
-Outputs: /home/jovyan/kgbk271-ibd-volume/results/prism2/umap/
+Outputs: /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap/
 """
 
 import argparse
@@ -37,7 +37,7 @@ EMBED_DIRS = {
     "titan": Path(DEFAULT_JOB_DIR) / "20x_512px_0px_overlap" / "slide_features_titan",
 }
 OMICS_CSV   = Path("/home/jovyan/shared-data/ibd_plexus_sparc_processed/omics_samples.csv")
-OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2/umap")
+OUT_DIR     = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap")
 
 # ── categorical colour palettes (CVD-safe, fixed order) ────────────────────
 # Validated against WCAG / OKLab ΔE ≥ 8 between adjacent pairs
@@ -481,7 +481,7 @@ def parse_args():
     p.add_argument("--job_dir", type=str, default=DEFAULT_JOB_DIR,
                    help="TRIDENT job_dir containing 20x_224px_0px_overlap/prism2_{base,diagnostic}/")
     p.add_argument("--out_dir", type=str, default=None,
-                   help="Output directory for HTML/PNG/PDF (default: <job_dir>/../../results/prism2/umap)")
+                   help="Output directory for HTML/PNG/PDF (default: <job_dir>/../../results/prism2_manual_knn/umap)")
     p.add_argument("--embeddings", nargs="+",
                    default=["prism2_base", "prism2_diagnostic"],
                    help="Which embedding types to visualise")
