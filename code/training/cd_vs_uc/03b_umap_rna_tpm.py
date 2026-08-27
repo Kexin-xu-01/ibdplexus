@@ -48,8 +48,7 @@ MAPPING_CSV = os.path.join(TRANSCRIPTOMICS_DIR,
               'ibd_21183_omics_patient_mapping_genestack.csv')
 SAMPLE_META = os.path.join(TRANSCRIPTOMICS_DIR,
               'GSF1478941_sample_combined_from1stRun.tsv__metadata.csv')
-OUT_DIR     = ('/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/'
-               'tpm_analysis/umap')
+OUT_DIR     = '/home/jovyan/kgbk271-ibd-volume/results/rna/tpm'
 COORDS_NPZ  = os.path.join(OUT_DIR, 'umap_rna_tpm_coords.npz')
 
 N_PCA          = 50
