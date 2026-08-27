@@ -128,34 +128,54 @@ and validation within a fold.
 
 ## 6. Comparison to Previous Batch-Corrected Run
 
-The prior visit-level result (`rna_visit`, `08b_train_at20cm_visit_level.py`) used
-CombatSeq + VST on a cohort matched to imaging visits (RNA + H&E slide within 7 days).
+### 6a. Matched comparison (same patients, same granularity)
 
-| | Previous: `rna_visit` (CombatSeq + VST) | New: `rna_tpm_sample` (TPM only) |
+To isolate the effect of normalisation from differences in cohort or aggregation
+method, a matched VST run was performed using `08b_train_at20cm_vst_sample_level.py`.
+It uses **exactly the same 847 patients and 1,068 samples** as the TPM analysis,
+at sample level, with the same RF parameters and CV splits. The only difference
+is the source matrix (VST + CombatSeq vs TPM).
+
+| | `rna_vst_sample` (VST + CombatSeq, leaky) | `rna_tpm_sample` (TPM, clean) |
 |---|---|---|
 | Normalisation | CombatSeq + DESeq2 VST | log₂(TPM+1), per sample |
-| Batch correction | Yes (all samples) | None |
-| Level | Visit (RNA+imaging matched) | Sample (RNA only) |
+| Batch correction | Yes — fitted on all samples | None |
+| Level | Sample | Sample |
+| Samples | 1,068 | 1,068 |
+| Patients | 847 | 847 |
+| Genes/fold | 17,963 (all retained) | ~17,480 (per-fold filter) |
+| **AUC** | 0.8267 ± 0.0341 | **0.8149 ± 0.0275** |
+| **AP** | 0.6740 ± 0.0673 | **0.6736 ± 0.0702** |
+| **Accuracy** | 0.7601 | **0.7500** |
+| **ΔAUC (VST − TPM)** | **+0.012** | — |
+
+### 6b. Unmatched comparison (context only)
+
+The original `rna_visit` result (`08b_train_at20cm_visit_level.py`) used a
+different cohort (imaging+RNA matched, patient-averaged) and is shown here for
+historical context only. It is not a valid direct comparison.
+
+| | `rna_visit` (CombatSeq + VST) | `rna_tpm_sample` (TPM) |
+|---|---|---|
+| Level | Visit (RNA+imaging matched, patient mean) | Sample (RNA only) |
 | Samples / visits | 945 | 1,068 |
 | Patients | 817 | 847 |
 | **AUC** | 0.8160 ± 0.0334 | **0.8149 ± 0.0275** |
-| **AP** | 0.6687 ± 0.0685 | **0.6736 ± 0.0702** |
-| **Accuracy** | 0.7493 | **0.7500** |
 
 ### Interpretation
 
-The two runs produce statistically indistinguishable performance (ΔAUC = −0.001,
-ΔAP = +0.005). This has two implications:
+1. **The leakage inflates VST performance by ~0.012 AUC** on this cohort.
+   On the matched cohort, VST achieves AUC 0.8267 vs TPM 0.8149. The gap is
+   modest but consistent with what a small amount of test-set information leaking
+   into batch correction parameters would produce.
 
-1. **The batch correction and VST were not artificially inflating results.**
-   The leakage was present but its practical effect on this cohort was
-   negligible — the discriminative signal is driven by genuine biology, not
-   normalisation artefacts.
+2. **The discriminative signal is primarily biological.** The majority of
+   performance (AUC ~0.81) is retained without any cross-sample normalisation,
+   confirming the signal is not a normalisation artefact.
 
-2. **The TPM result is the defensible one to report.** It is methodologically
-   clean: no cross-sample information, no batch correction, per-fold gene
-   filtering. The near-identical AUC means nothing is sacrificed by using the
-   correct approach.
+3. **TPM is the defensible result to report.** It is methodologically clean,
+   the performance difference is modest (+0.012 AUC for VST), and the approach
+   is reproducible without access to the full dataset at inference time.
 
 ---
 
@@ -163,11 +183,15 @@ The two runs produce statistically indistinguishable performance (ΔAUC = −0.0
 
 | File | Description |
 |---|---|
-| `08_train_at20cm_tpm_sample_level.py` | Training script |
-| `results/at20cm_tpm_sample_fold_metrics.csv` | Per-fold AUC / AP / confusion matrix |
-| `results/at20cm_tpm_sample_predictions.csv` | Per-sample predictions with `prob_uc` |
-| `results/at20cm_tpm_sample_summary.json` | Aggregated summary with metadata |
+| `08_train_at20cm_tpm_sample_level.py` | TPM training script (leakage-free) |
+| `08b_train_at20cm_vst_sample_level.py` | Matched VST training script (leaky reference) |
+| `08_at20cm_tpm_sample_level/results/at20cm_tpm_sample_fold_metrics.csv` | TPM per-fold metrics |
+| `08_at20cm_tpm_sample_level/results/at20cm_tpm_sample_predictions.csv` | TPM per-sample predictions |
+| `08_at20cm_tpm_sample_level/results/at20cm_tpm_sample_summary.json` | TPM summary |
+| `08_at20cm_vst_sample_level/results/at20cm_vst_sample_fold_metrics.csv` | VST per-fold metrics |
+| `08_at20cm_vst_sample_level/results/at20cm_vst_sample_predictions.csv` | VST per-sample predictions |
+| `08_at20cm_vst_sample_level/results/at20cm_vst_sample_summary.json` | VST summary |
 
-Script location: `/home/jovyan/ibdplexus/code/training/cd_vs_uc/08_train_at20cm_tpm_sample_level.py`
+Script location: `/home/jovyan/ibdplexus/code/training/cd_vs_uc/`
 
-Results location: `/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/08_at20cm_tpm_sample_level/results/`
+Results location: `/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/`
