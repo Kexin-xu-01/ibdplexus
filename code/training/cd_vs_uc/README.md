@@ -26,19 +26,30 @@ Scripts are numbered to reflect execution order. The suffix letter (`b`) marks a
 of the same experiment arm run in parallel with its sibling, not a prerequisite.
 Superseded and experimental scripts are in `_deprecated/`.
 
-### Active scripts
+### `build_cv_splits/` — Cross-validation splits
 
 | Script | What it does | Outputs |
 |--------|-------------|---------|
 | `01_build_cv_splits.py` | Builds patient-level 5-fold stratified CV splits; filters to colon sites, deduplicates multi-site patients | `../cv_splits_patients.csv`, `../cv_splits_slides.csv` |
 | `01b_build_cv_splits_at20cm_matched.py` | Matched variant: at-20-cm cohort with proximity-paired imaging + RNA (≤7 days) | `../cv_splits_at20cm_matched.csv` |
+
+### `image/` — Imaging classifiers
+
+| Script | What it does | Outputs |
+|--------|-------------|---------|
 | `02_train_random_forest.py` | RF on prism2_base and prism2_diagnostic embeddings; 1,250-patient full cohort | `02_04_imaging_allsites/results/` |
 | `02b_train_imaging_matched.py` | Imaging RF restricted to matched cohort (997 patients with RNA) | `02_04_imaging_allsites/results/` |
+| `12b_compare_filter_conditions.py` | Compares model performance across patch filter conditions (unfiltered, laplacian, no_darkspot) | console + CSVs |
+
+### `rna/` — Transcriptomics classifiers
+
+| Script | What it does | Outputs |
+|--------|-------------|---------|
 | `03_train_transcriptomics_tpm.py` | RF on log-TPM gene expression; per-sample (not patient-mean) | `03_tpm/results/` |
 | `03b_umap_rna_tpm.py` | UMAP of log-TPM features (PCA-50 → UMAP-2) with clinical metadata colouring | `results/rna/umap_tpm/` |
 | `08_train_at20cm_tpm_sample_level.py` | At-20-cm RF using log-TPM features at sample level | `08_09_at20cm_site_controlled/results/` |
-| `12b_compare_filter_conditions.py` | Compares model performance across patch filter conditions (unfiltered, laplacian, no_darkspot) | console + CSVs |
-| `version_utils.py` | Helper module (`next_versioned_path`, `log_version`) used by all report scripts | — |
+| `08b_train_at20cm_vst_sample_level.py` | At-20-cm RF using VST+CombatSeq normalised expression | `08_09_at20cm_site_controlled/results/` |
+| `umap_bulkformer.py` | UMAP of BulkFormer transcriptomic embeddings with metadata colouring | `results/rna/umap_bulkformer/` |
 
 ### `clinical/` — Clinical feature modelling
 
@@ -47,6 +58,17 @@ Superseded and experimental scripts are in `_deprecated/`.
 | `01_train_clinical.py` | RF on clinical features (demographics, disease scores, medications) |
 | `02_shap_clinical.py` | SHAP importance for clinical feature model |
 | `03_plot_clinical.py` | Bar plots + beeswarm from clinical SHAP output |
+
+### `multimodal/` — Multimodal fusion
+
+| Script | What it does |
+|--------|-------------|
+| `clinical_rna_image/01_train.py` | RF + MLP on clinical + image + RNA concatenated features (817 patients, at-20-cm) |
+| `clinical_rna_image/02_shap.py` | SHAP importance per modality arm |
+
+### `version_utils.py` — Shared utility
+
+Helper module (`next_versioned_path`, `log_version`) used by report generation scripts.
 
 ### `plot/` — Standalone comparison figures
 
@@ -67,11 +89,9 @@ No strict ordering dependency between them.
 
 | Job file | What it runs |
 |----------|-------------|
-| `job_rf_no_darkspot.yaml` | RF training on `no_darkspot` filtered dataset |
-| `job_mlp_no_darkspot.yaml` | MLP training on `no_darkspot` filtered dataset |
-| `job_umap_rna.yaml` | RNA UMAP (03b_umap_rna_tpm.py or umap_rna.py) |
-| `_deprecated/job_rf_tissue_threshold_15.yaml` | Superseded (tissue threshold only, no artefact filter) |
-| `_deprecated/job_rf_tissue_threshold_15_filtered.yaml` | Superseded (intensity filter only) |
+| `job_rf_manual_knn.yaml` | RF on `manual_knn` dataset (current best QC) — runs `image/02_train_random_forest.py` |
+| `job_rf_no_darkspot.yaml` | RF on `no_darkspot` dataset — runs `image/02_train_random_forest.py` |
+| `_deprecated/` | Jobs referencing deprecated scripts (histoscore, MLP, old at-20-cm visit-level, broken RNA UMAP) |
 
 ### `_deprecated/` — Historical pipeline
 

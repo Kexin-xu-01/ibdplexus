@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-rf-no-darkspot
+  name: kgbk271-rf-at20cm-visit-manual-knn
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -27,18 +27,16 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
-                /home/jovyan/ibdplexus/code/training/cd_vs_uc/image/02_train_random_forest.py \
-                --splits_csv /home/jovyan/kgbk271-ibd-volume/training/cv_splits_slides_no_darkspot.csv \
-                --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/prism2_base \
-                --emb_diag_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/prism2_diagnostic \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/no_darkspot/results
+                /home/jovyan/ibdplexus/code/training/cd_vs_uc/_deprecated/08b_train_at20cm_visit_level.py \
+                --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/prism2_base \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/08_09_at20cm_manual_knn/results
           resources:
             requests:
-              cpu: "2"
-              memory: 8Gi
+              cpu: "1"
+              memory: 10Gi
             limits:
-              cpu: "4"
-              memory: 16Gi
+              cpu: "2"
+              memory: 14Gi
           env:
             - name: http_proxy
               value: "http://azpse.astrazeneca.net:9480"

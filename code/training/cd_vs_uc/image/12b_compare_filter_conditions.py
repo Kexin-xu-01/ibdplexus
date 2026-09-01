@@ -7,6 +7,7 @@ Filtering conditions:
   2. tissue_t15      — tissue_threshold_15 (Laplacian t100 only)
   3. lap_intensity   — tissue_threshold_15_filtered (Lap t100 + intensity p98)
   4. no_darkspot     — tissue_threshold_15_filtered_no_darkspot (+ GrandQC dark spots)
+  5. manual_knn      — tissue_threshold_15_filtered_no_darkspot_manual_knn (+ manual KNN patch exclusion)
 
 Outputs:
   <OUT_DIR>/filter_rf_comparison.png        RF AUC/AP bar chart
@@ -29,17 +30,19 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 # ── Result directories per condition ─────────────────────────────────────────
 CONDITIONS = {
-    "Original\n(trident)":          os.path.join(BASE, "training/cd_vs_uc/02_04_imaging_allsites/results"),
-    "Laplacian\nt100":              os.path.join(BASE, "training/cd_vs_uc/tissue_threshold_15/results"),
-    "Lap +\nintensity":             os.path.join(BASE, "training/cd_vs_uc/tissue_threshold_15_filtered/results"),
-    "Lap + intensity\n+ no-darkspot": os.path.join(BASE, "training/cd_vs_uc/no_darkspot/results"),
+    "Original\n(trident)":               os.path.join(BASE, "training/cd_vs_uc/02_04_imaging_allsites/results"),
+    "Laplacian\nt100":                   os.path.join(BASE, "training/cd_vs_uc/02_imaging_tissue_threshold_15/results"),
+    "Lap +\nintensity":                  os.path.join(BASE, "training/cd_vs_uc/02_imaging_tissue_threshold_15_filtered/results"),
+    "Lap + intensity\n+ no-darkspot":    os.path.join(BASE, "training/cd_vs_uc/02_imaging_no_darkspot/results"),
+    "Lap + intensity\n+ no-darkspot\n+ manual KNN": os.path.join(BASE, "training/cd_vs_uc/02_imaging_manual_knn/results"),
 }
 
 HISTOSCORE_CSVS = {
-    "Original\n(trident)":          os.path.join(BASE, "results/prism2/prism2_histological_score.csv"),
-    "Laplacian\nt100":              None,
-    "Lap +\nintensity":             os.path.join(BASE, "results/prism2_tissue_threshold_15_filtered/prism2_histological_score.csv"),
-    "Lap + intensity\n+ no-darkspot": os.path.join(BASE, "results/prism2_no_darkspot/prism2_histological_score.csv"),
+    "Original\n(trident)":               os.path.join(BASE, "results/prism2/prism2_histological_score.csv"),
+    "Laplacian\nt100":                   None,
+    "Lap +\nintensity":                  os.path.join(BASE, "results/prism2_tissue_threshold_15_filtered/prism2_histological_score.csv"),
+    "Lap + intensity\n+ no-darkspot":    os.path.join(BASE, "results/prism2_no_darkspot/prism2_histological_score.csv"),
+    "Lap + intensity\n+ no-darkspot\n+ manual KNN": os.path.join(BASE, "results/prism2_manual_knn/prism2_histological_score.csv"),
 }
 
 HISTO_COLS = [
@@ -51,7 +54,7 @@ HISTO_COLS = [
 ]
 
 MODELS = ["prism2_base", "prism2_diagnostic"]
-COLORS = ["#4C72B0", "#DD8452", "#55A868", "#C44E52"]
+COLORS = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B2"]
 
 # ── Load RF summaries ─────────────────────────────────────────────────────────
 def load_rf_summary(results_dir, model):
@@ -86,7 +89,7 @@ else:
     print(rf_df[["condition","model","mean_auc","mean_ap","mean_acc"]].to_string(index=False))
 
     # ── RF bar chart ─────────────────────────────────────────────────────────
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(17, 5))
     fig.suptitle("CD vs UC classification — effect of patch quality filtering\n(Random Forest, 5-fold CV)",
                  fontsize=13, fontweight="bold")
 

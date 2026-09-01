@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-rf-no-darkspot
+  name: kgbk271-rf-manual-knn
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -29,9 +29,9 @@ spec:
               /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
                 /home/jovyan/ibdplexus/code/training/cd_vs_uc/image/02_train_random_forest.py \
                 --splits_csv /home/jovyan/kgbk271-ibd-volume/training/cv_splits_slides_no_darkspot.csv \
-                --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/prism2_base \
-                --emb_diag_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/prism2_diagnostic \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/no_darkspot/results
+                --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/prism2_base \
+                --emb_diag_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/prism2_diagnostic \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/02_imaging_manual_knn/results
           resources:
             requests:
               cpu: "2"
