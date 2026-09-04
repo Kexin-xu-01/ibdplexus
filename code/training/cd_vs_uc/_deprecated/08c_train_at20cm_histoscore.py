@@ -57,10 +57,10 @@ MAPPING_CSV   = os.path.join(TRANSCRIPTOMICS_DIR,
                 'ibd_21183_omics_patient_mapping_genestack.csv')
 SAMPLE_META   = os.path.join(TRANSCRIPTOMICS_DIR,
                 'GSF1478941_sample_combined_from1stRun.tsv__metadata.csv')
-CV_PATIENTS   = '/home/jovyan/kgbk271-ibd-volume/training/cv_splits_patients.csv'
-HISTOSCORE_CSV = '/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_histological_score.csv'
-OUT_DIR       = ('/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/'
-                 'concept_learning/results')
+CV_PATIENTS          = '/home/jovyan/kgbk271-ibd-volume/training/cv_splits_patients.csv'
+_DEFAULT_HISTOSCORE  = '/home/jovyan/kgbk271-ibd-volume/results/prism2/prism2_histological_score.csv'
+_DEFAULT_OUT         = ('/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/'
+                        'concept_learning/results')
 
 AT20       = {'at 20 cm', 'At 20 cm'}
 CDUC_RAW   = ["Crohn's disease", 'Ulcerative colitis']
@@ -93,7 +93,7 @@ def norm_dx(d):
 
 # ── loaders ───────────────────────────────────────────────────────────────────
 
-def load_histoscore_visits(cv_patients):
+def load_histoscore_visits(cv_patients, histoscore_csv):
     """One row per (patient, visit-date). Slides from the same date are mean-pooled."""
     pat_df  = cv_patients.set_index('patient_id')
     cv_pids = set(pat_df.index)
@@ -110,7 +110,7 @@ def load_histoscore_visits(cv_patients):
     wsi['visit_key'] = list(zip(wsi['deidentified_master_patient_id'],
                                 wsi['date'].dt.date))
 
-    scores = pd.read_csv(HISTOSCORE_CSV).set_index('slide')
+    scores = pd.read_csv(histoscore_csv).set_index('slide')
 
     rows = []
     for (pid, vdate), grp in wsi.groupby('visit_key'):
@@ -352,11 +352,20 @@ def summarise(fold_results):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument('--histoscore_csv', default=_DEFAULT_HISTOSCORE,
+                   help='Path to prism2_histological_score.csv.')
+    p.add_argument('--out_dir', default=_DEFAULT_OUT,
+                   help='Output directory for results.')
+    args = p.parse_args()
+
+    out_dir = args.out_dir
+    os.makedirs(out_dir, exist_ok=True)
     cv_patients = pd.read_csv(CV_PATIENTS)
 
     print('=== Loading At-20-cm visit-level data ===')
-    img_df = load_histoscore_visits(cv_patients)
+    img_df = load_histoscore_visits(cv_patients, args.histoscore_csv)
     rna_df = load_rna_visits(cv_patients)
 
     img_m, rna_m = common_visits(img_df, rna_df)
@@ -382,9 +391,9 @@ def main():
 
     # ── Save ──────────────────────────────────────────────────────────────────
     pd.DataFrame(all_fold_results).to_csv(
-        os.path.join(OUT_DIR, 'at20cm_histoscore_fold_metrics.csv'), index=False)
+        os.path.join(out_dir, 'at20cm_histoscore_fold_metrics.csv'), index=False)
     pd.DataFrame(all_preds).to_csv(
-        os.path.join(OUT_DIR, 'at20cm_histoscore_predictions.csv'), index=False)
+        os.path.join(out_dir, 'at20cm_histoscore_predictions.csv'), index=False)
 
     strategies = list(dict.fromkeys(r['strategy'] for r in all_fold_results))
     summary_list = []
@@ -396,7 +405,7 @@ def main():
         s['n_patients'] = n_pat
         summary_list.append(s)
 
-    with open(os.path.join(OUT_DIR, 'at20cm_histoscore_summary.json'), 'w') as f:
+    with open(os.path.join(out_dir, 'at20cm_histoscore_summary.json'), 'w') as f:
         json.dump(summary_list, f, indent=2)
 
     print('\n\n=== HISTOSCORE SUMMARY ===')
@@ -408,7 +417,7 @@ def main():
               f"AUC={s['mean_auc']:.4f}±{s['std_auc']:.4f}  "
               f"AP={s['mean_ap']:.4f}±{s['std_ap']:.4f}  "
               f"Acc={s['mean_acc']:.4f}")
-    print(f'\nResults saved to {OUT_DIR}/')
+    print(f'\nResults saved to {out_dir}/')
 
 
 if __name__ == '__main__':

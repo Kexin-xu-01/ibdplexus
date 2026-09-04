@@ -91,21 +91,28 @@ def load_scores(csv_path: Path) -> pd.DataFrame:
 # Visualisation helpers
 # ---------------------------------------------------------------------------
 
-def _make_overlay(thumb_np, heatmap_norm, coords, sx, sy, pw, ph, alpha=0.40, cmap=None):
-    """Blend attention colours onto H&E thumbnail."""
+def _make_overlay(thumb_np, heatmap_norm, coords, sx, sy, pw, ph, alpha=0.45, cmap=None):
+    """Blend attention colour squares onto H&E thumbnail.
+
+    Each tile is drawn as a crisp square at a minimum of 10 px so it is
+    visible even when the thumbnail is very small relative to the slide.
+    """
     H, W = thumb_np.shape[:2]
-    bg      = thumb_np.astype(np.float32) / 255.0
-    overlay = np.zeros((H, W, 4), dtype=np.float32)
-    colors  = cmap(heatmap_norm)
+    bg = thumb_np.astype(np.float32) / 255.0
+    result = bg.copy()
+    min_px = max(10, int(round(pw)))
+    colors = cmap(heatmap_norm)  # (N, 4) RGBA
+
     for i, (x, y) in enumerate(coords):
-        x0 = int(round(x * sx)); y0 = int(round(y * sy))
-        x1 = min(W, x0 + int(round(pw)) + 1)
-        y1 = min(H, y0 + int(round(ph)) + 1)
-        overlay[y0:y1, x0:x1] = colors[i]
-    tissue = (overlay[..., 3] > 0)[..., None]
-    return np.clip(
-        np.where(tissue, (1 - alpha) * bg + alpha * overlay[..., :3], bg), 0, 1
-    )
+        if heatmap_norm[i] == 0:
+            continue
+        x0 = int(round(x * sx))
+        y0 = int(round(y * sy))
+        x1 = min(W, x0 + min_px)
+        y1 = min(H, y0 + min_px)
+        tile_rgb = colors[i, :3]
+        result[y0:y1, x0:x1] = (1.0 - alpha) * bg[y0:y1, x0:x1] + alpha * tile_rgb
+    return np.clip(result, 0, 1)
 
 
 def _top_patches(wsi_path: Path, coords, heatmap_norm, n, patch_px):
@@ -149,16 +156,31 @@ def save_figure(
         return
 
     bg       = "#141414"
-    cmap     = plt.cm.inferno
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap = LinearSegmentedColormap.from_list(
+        "attn_he", ["#000033", "#00FFCC", "#FFE000"], N=256
+    )
     patch_px = int(float(meta.get("patch_size_level0", 672)))
+
+    # --- get true slide dimensions from OpenSlide (metadata often missing) ---
+    wsi_path = WSI_DIR / f"{slide}.tiff"
+    l0w_slide, l0h_slide = None, None
+    if wsi_path.exists():
+        try:
+            import openslide as _osl
+            _sl = _osl.OpenSlide(str(wsi_path))
+            l0w_slide, l0h_slide = _sl.dimensions
+            _sl.close()
+        except Exception:
+            pass
 
     # --- load thumbnail ---
     thumb_path = THUMB_DIR / f"{slide}.jpg"
     if thumb_path.exists():
         thumb_np = np.array(Image.open(thumb_path))
         H, W = thumb_np.shape[:2]
-        l0w  = int(meta.get("level0_width",  W * patch_px))
-        l0h  = int(meta.get("level0_height", H * patch_px))
+        l0w = l0w_slide or int(meta.get("level0_width",  0)) or (int(coords[:,0].max()) + 2 * patch_px)
+        l0h = l0h_slide or int(meta.get("level0_height", 0)) or (int(coords[:,1].max()) + 2 * patch_px)
         sx, sy = W / l0w, H / l0h
         pw, ph = patch_px * sx, patch_px * sy
         have_thumb = True
@@ -168,10 +190,9 @@ def save_figure(
     # --- build overlay ---
     if have_thumb:
         overlay = _make_overlay(thumb_np, heatmap_norm, coords, sx, sy, pw, ph,
-                                alpha=0.70, cmap=cmap)
+                                alpha=0.45, cmap=cmap)
 
     # --- top patches ---
-    wsi_path = WSI_DIR / f"{slide}.tiff"
     patches  = _top_patches(wsi_path, coords, heatmap_norm, N_TOP_PATCHES, patch_px) \
                if wsi_path.exists() else []
     n_patches = len(patches)

@@ -60,11 +60,11 @@ MAPPING_CSV = os.path.join(TRANSCRIPTOMICS_DIR,
               'ibd_21183_omics_patient_mapping_genestack.csv')
 SAMPLE_META = os.path.join(TRANSCRIPTOMICS_DIR,
               'GSF1478941_sample_combined_from1stRun.tsv__metadata.csv')
-CV_PATIENTS = '/home/jovyan/kgbk271-ibd-volume/training/cv_splits_patients.csv'
-EMB_BASE    = ('/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/'
-               '20x_224px_0px_overlap/prism2_base')
-OUT_DIR     = ('/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/'
-               '08_09_at20cm_site_controlled/results')
+CV_PATIENTS     = '/home/jovyan/kgbk271-ibd-volume/training/cv_splits_patients.csv'
+_DEFAULT_EMB    = ('/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/'
+                   '20x_224px_0px_overlap/prism2_base')
+_DEFAULT_OUT    = ('/home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/'
+                   '08_09_at20cm_site_controlled/results')
 
 AT20 = {'at 20 cm', 'At 20 cm'}
 CDUC_RAW    = ["Crohn's disease", 'Ulcerative colitis']
@@ -84,7 +84,7 @@ def norm_dx(d):
 
 # ── loaders ───────────────────────────────────────────────────────────────────
 
-def load_img_visits(cv_patients):
+def load_img_visits(cv_patients, emb_base):
     """One row per (patient, visit-date).  Slides from the same date are mean-pooled."""
     pat_df = cv_patients.set_index('patient_id')
     cv_pids = set(pat_df.index)
@@ -106,7 +106,7 @@ def load_img_visits(cv_patients):
             continue
         vecs = []
         for sid in grp['slide_id']:
-            h5p = os.path.join(EMB_BASE, f'{sid}.h5')
+            h5p = os.path.join(emb_base, f'{sid}.h5')
             if os.path.exists(h5p):
                 with h5py.File(h5p, 'r') as h:
                     vecs.append(h['features'][:])
@@ -372,11 +372,20 @@ def summarise(fold_results):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument('--emb_base_dir', default=_DEFAULT_EMB,
+                   help='Directory containing prism2_base .h5 files.')
+    p.add_argument('--out_dir', default=_DEFAULT_OUT,
+                   help='Output directory for results.')
+    args = p.parse_args()
+
+    out_dir = args.out_dir
+    os.makedirs(out_dir, exist_ok=True)
     cv_patients = pd.read_csv(CV_PATIENTS)
 
     print('=== Loading At-20-cm visit-level data ===')
-    img_df = load_img_visits(cv_patients)
+    img_df = load_img_visits(cv_patients, args.emb_base_dir)
     rna_df = load_rna_visits(cv_patients)
 
     # Restrict all arms to the same visits so comparisons are modality-only.
@@ -408,9 +417,9 @@ def main():
 
     # ── Save ──────────────────────────────────────────────────────────────────
     pd.DataFrame(all_fold_results).to_csv(
-        os.path.join(OUT_DIR, 'at20cm_visit_fold_metrics.csv'), index=False)
+        os.path.join(out_dir, 'at20cm_visit_fold_metrics.csv'), index=False)
     pd.DataFrame(all_preds).to_csv(
-        os.path.join(OUT_DIR, 'at20cm_visit_predictions.csv'), index=False)
+        os.path.join(out_dir, 'at20cm_visit_predictions.csv'), index=False)
 
     strategies = list(dict.fromkeys(r['strategy'] for r in all_fold_results))
     summary_list = []
@@ -422,7 +431,7 @@ def main():
         s['n_patients'] = n_pat
         summary_list.append(s)
 
-    with open(os.path.join(OUT_DIR, 'at20cm_visit_summary.json'), 'w') as f:
+    with open(os.path.join(out_dir, 'at20cm_visit_summary.json'), 'w') as f:
         json.dump(summary_list, f, indent=2)
 
     print('\n\n=== VISIT-LEVEL SUMMARY ===')
@@ -435,7 +444,7 @@ def main():
               f"AP={s['mean_ap']:.4f}±{s['std_ap']:.4f}  "
               f"Acc={s['mean_acc']:.4f}")
 
-    print(f'\nResults saved to {OUT_DIR}/')
+    print(f'\nResults saved to {out_dir}/')
 
 
 if __name__ == '__main__':

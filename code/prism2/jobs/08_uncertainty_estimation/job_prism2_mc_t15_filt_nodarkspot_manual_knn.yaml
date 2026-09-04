@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-temp-sampling-t15-manual-knn
+  name: kgbk271-prism2-mc-t15-manual-knn
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,11 +36,9 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/17_run_prism2_temperature_sampling.py \
-                --temperature 2.0 \
-                --n_samples 50 \
+                /home/jovyan/ibdplexus/code/prism2/19_run_prism2_multiple_choice.py \
                 --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2 \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/temperature_sampling \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/uncertainty_estimation/multiple_choice \
                 --gpu 0 \
                 --batch_size 4 \
                 --skip_errors

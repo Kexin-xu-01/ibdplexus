@@ -27,9 +27,8 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
-                /home/jovyan/ibdplexus/code/training/cd_vs_uc/_deprecated/08b_train_at20cm_visit_level.py \
-                --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/prism2_base \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/08_09_at20cm_manual_knn/results
+                /home/jovyan/ibdplexus/code/training/cd_vs_uc/train_rf.py \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/at20cm_visit_manual_knn/results
           resources:
             requests:
               cpu: "1"
