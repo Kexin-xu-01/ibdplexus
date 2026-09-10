@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/encode_image/run_prism2.py \
+                /home/jovyan/ibdplexus/code/encode_image/09_run_prism2.py \
                 --job_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn \
                 --batch_size 8 \
                 --gpu 0 \

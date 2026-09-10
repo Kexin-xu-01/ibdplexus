@@ -57,7 +57,7 @@ spec:
               # ── run GrandQC inference on all slides ───────────────────────
               # State dict extraction and timm shims are handled automatically
               # by build_model() on first run; restart-safe (skips existing masks)
-              python /home/jovyan/ibdplexus/code/image_qc/grandqc/run_grandqc.py \
+              python /home/jovyan/ibdplexus/code/image_qc/02_grandqc/01_run_grandqc.py \
                 --gpu 0 \
                 --start 0 \
                 --end -1

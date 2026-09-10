@@ -40,7 +40,7 @@ spec:
               PYTHON=/home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python
 
               echo "=== Patch viewer: tissue_threshold_15_filtered (same 5 slides) ==="
-              $PYTHON /home/jovyan/ibdplexus/code/prism2/umap_patch_viewer.py \
+              $PYTHON /home/jovyan/ibdplexus/code/prism2/umap/08_umap_patch_viewer.py \
                 --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered/20x_224px_0px_overlap/features_virchow2 \
                 --slides 10407210HE1 10407218HE1 10407219HE1 10407220HE1 10407267HE1 \
                 --out_dir /home/jovyan/kgbk271-ibd-volume/results/umap_patch_viewer/tissue_threshold_15_filtered

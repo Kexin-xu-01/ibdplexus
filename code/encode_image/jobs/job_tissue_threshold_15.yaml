@@ -43,7 +43,7 @@ spec:
               TRIDENT=/home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python
               SCRIPT=/home/jovyan/shared-data/users/kexin/models/trident/run_batch_of_slides.py
               PRISM2=/home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python
-              PRISM2_SCRIPT=/home/jovyan/ibdplexus/code/encode_image/run_prism2.py
+              PRISM2_SCRIPT=/home/jovyan/ibdplexus/code/encode_image/09_run_prism2.py
 
               echo "=== Stage 0: prepare job_dir ==="
               mkdir -p "$JOB_DIR"

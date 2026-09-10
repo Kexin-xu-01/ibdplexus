@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-saliency-umap
+  name: kgbk271-prism2-conf-rating-t15-filt-nodarkspot
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -36,10 +36,15 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/prism2_saliency_umap.py \
-                --slide 10407210HE1 \
+                /home/jovyan/ibdplexus/code/prism2/uncertainty/03_run_prism2_confidence_rating.py \
+                --n_runs 5 \
+                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/features_virchow2 \
+                --out_dir /home/jovyan/kgbk271-ibd-volume/results/_deprecated/prism2_tissue_threshold_15_filtered_no_darkspot/confidence_rating \
                 --gpu 0 \
-                --compute-only
+                --batch_size 4 \
+                --temperature 0.7 \
+                --do_sample true \
+                --skip_errors
           resources:
             requests:
               cpu: "8"

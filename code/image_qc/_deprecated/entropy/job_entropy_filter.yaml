@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               pip install -q openslide-python openslide-bin opencv-python-headless h5py
-              python /home/jovyan/ibdplexus/code/image_qc/entropy/filter_entropy.py \
+              python /home/jovyan/ibdplexus/code/image_qc/_deprecated/entropy/filter_entropy.py \
                 --min_entropy 4.0 \
                 --workers 8
           resources:

@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               pip install -q openslide-python openslide-bin opencv-python-headless h5py matplotlib
-              python /home/jovyan/ibdplexus/code/image_qc/entropy/analysis.py
+              python /home/jovyan/ibdplexus/code/image_qc/_deprecated/entropy/analysis.py
           resources:
             requests:
               cpu: "4"

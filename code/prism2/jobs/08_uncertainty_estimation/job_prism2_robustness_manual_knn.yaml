@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/22_run_prism2_question_robustness.py \
+                /home/jovyan/ibdplexus/code/prism2/uncertainty/22_run_prism2_question_robustness.py \
                 --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2 \
                 --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/uncertainty_estimation/question_robustness \
                 --gpu 0 \

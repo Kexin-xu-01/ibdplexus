@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               pip install -q openslide-python openslide-bin opencv-python-headless h5py matplotlib
-              python /home/jovyan/ibdplexus/code/image_qc/otsu/analysis.py
+              python /home/jovyan/ibdplexus/code/image_qc/_deprecated/otsu/analysis.py
           resources:
             requests:
               cpu: "4"

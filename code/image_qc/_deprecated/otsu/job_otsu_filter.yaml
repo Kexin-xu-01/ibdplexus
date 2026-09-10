@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               pip install -q openslide-python openslide-bin opencv-python-headless h5py
-              python /home/jovyan/ibdplexus/code/image_qc/otsu/filter_otsu.py \
+              python /home/jovyan/ibdplexus/code/image_qc/_deprecated/otsu/filter_otsu.py \
                 --min_tissue 0.10 \
                 --workers 8
           resources:

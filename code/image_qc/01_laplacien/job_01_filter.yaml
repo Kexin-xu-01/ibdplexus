@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               pip install -q openslide-python openslide-bin opencv-python-headless h5py
-              python /home/jovyan/ibdplexus/code/image_qc/laplacien/filter_laplacien.py \
+              python /home/jovyan/ibdplexus/code/image_qc/01_laplacien/02_filter_laplacien.py \
                 --threshold 100 \
                 --workers 8
           resources:

@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               pip install -q openslide-python openslide-bin opencv-python-headless h5py matplotlib
-              python /home/jovyan/ibdplexus/code/image_qc/laplacien/inspect_rejected.py \
+              python /home/jovyan/ibdplexus/code/image_qc/01_laplacien/03_inspect_rejected.py \
                 --threshold 100 \
                 --n_slides 80 \
                 --workers 8

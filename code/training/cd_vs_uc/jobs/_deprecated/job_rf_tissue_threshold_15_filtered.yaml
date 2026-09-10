@@ -32,7 +32,7 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python \
-                /home/jovyan/ibdplexus/code/training/cd_vs_uc/02_train_random_forest.py \
+                /home/jovyan/ibdplexus/code/training/cd_vs_uc/_deprecated/image/02_train_random_forest.py \
                 --emb_base_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered/20x_224px_0px_overlap/prism2_base \
                 --emb_diag_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered/20x_224px_0px_overlap/prism2_diagnostic \
                 --out_dir /home/jovyan/kgbk271-ibd-volume/training/cd_vs_uc/tissue_threshold_15_filtered/results

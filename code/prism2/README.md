@@ -23,6 +23,54 @@ All datasets live under `/home/jovyan/kgbk271-ibd-volume/data/processed/` and co
 
 ---
 
+## Directory Structure
+
+Scripts are grouped by function; numbering reflects the intended pipeline order.
+
+```
+prism2/
+├── scoring/          Primary PRISM2 inference
+│   ├── 01_run_prism2_uamp.py           UAMP P(Yes) scores (11 terms)
+│   └── 04_run_prism2_reports.py        Free-text pathology reports
+│
+├── umap/             UMAP visualisations
+│   ├── 05_umap_embeddings.py           Slide-level UMAP (base + diagnostic)
+│   ├── 06_umap_uamp_scores.py          UAMP score overlays on UMAP
+│   ├── 07_umap_reports.py              Report-derived feature overlays
+│   ├── 08_umap_patch_viewer.py         Per-slide patch UMAP viewer
+│   └── 09_multi_slide_umap.py          Cross-cohort patch UMAP
+│
+├── saliency/         Attention / saliency
+│   ├── 10_prism2_saliency.py           Base or yes/no target saliency
+│   ├── 11_prism2_saliency_uamp.py      Per-UAMP-term saliency
+│   ├── 16_attention_heatmap.py         Attention-weight heatmaps
+│   ├── utils/                          attention_heatmap helper package
+│   └── SALIENCY.md
+│
+├── uncertainty/      Uncertainty & robustness studies
+│   ├── 02_run_prism2_uamp_repeat5.py           Repeat-N reproducibility
+│   ├── 03_run_prism2_confidence_rating.py      Free-text confidence rating
+│   ├── 13_run_prism2_temperature_sampling.py   Temperature sampling
+│   ├── 15_plot_temperature_scores.py           (plots for 13)
+│   ├── 19_run_prism2_multiple_choice.py        3-way MC scoring
+│   ├── 20_run_prism2_multi_feature.py          10-way single-prompt scoring
+│   ├── 21_run_prism2_severity.py               5-way severity scoring
+│   ├── 22_run_prism2_question_robustness.py    Linguistic robustness
+│   ├── 23_plot_multi_feature_scores.py         (plots for 20)
+│   ├── 24_plot_uncertainty_comparison.py       4-panel uncertainty comparison
+│   ├── 25_plot_severity_vs_pyes_boxplot.py     (plots for 21)
+│   └── TEMPERATURE_SAMPLING.md
+│
+├── compare/          Cross-condition comparisons
+│   ├── 12_compare_tissue_filter.py             Filter comparison (no_filter vs filtered)
+│   └── 14_compare_histological_scores.py       Cross-dataset UAMP score comparison
+│
+├── jobs/             Kubernetes job specs (mirrors this layout — see below)
+└── _deprecated/      Superseded scripts
+```
+
+---
+
 ## Pipeline Overview
 
 ```
@@ -33,30 +81,34 @@ All datasets live under `/home/jovyan/kgbk271-ibd-volume/data/processed/` and co
          │
          ▼  (image_qc adds dark-spot and KNN filters → manual_knn dataset)
          │
-[01] 01_run_prism2_uamp.py           prism2_histological_score.csv
-[02] 02_run_prism2_uamp_repeat5.py   reproducibility_stats.csv        ← optional
-[03] 03_run_prism2_confidence_rating.py  confidence_rating.csv         ← optional
-[04] 04_run_prism2_reports.py        prism2_reports.jsonl / .csv
+scoring/01_run_prism2_uamp.py           prism2_histological_score.csv
+scoring/04_run_prism2_reports.py        prism2_reports.jsonl / .csv
          │
          ▼
-[05] 05_umap_embeddings.py           umap_prism2_{base,diagnostic}.html + _coords.npz
-[06] 06_umap_uamp_scores.py          umap_scores_prism2_{base,diagnostic}.html
-[07] 07_umap_reports.py              umap_prism2_diagnostic_reports.html + PNGs
-[08] 08_umap_patch_viewer.py         <slide>_umap.html  (per-slide drill-down)
-[09] 09_multi_slide_umap.py          all_slides_umap.html  (cross-cohort QC)
+umap/05_umap_embeddings.py              umap_prism2_{base,diagnostic}.html + _coords.npz
+umap/06_umap_uamp_scores.py             umap_scores_prism2_{base,diagnostic}.html
+umap/07_umap_reports.py                 umap_prism2_diagnostic_reports.html + PNGs
+umap/08_umap_patch_viewer.py            <slide>_umap.html  (per-slide drill-down)
+umap/09_multi_slide_umap.py             all_slides_umap.html  (cross-cohort QC)
          │
          ▼
-[10] prism2_saliency.py           <slide>.h5 + <slide>.png  (base or yes/no target)
-[11] prism2_saliency_uamp.py      <slide>/<uamp_term>.h5 + .png  (all 11 terms)
-         │
-[12] compare_tissue_filter.py     comparison_report.html  (post-hoc, no_filter vs filtered)
-[13] run_prism2_temperature_sampling.py  temperature sampling study
-[14] compare_histological_scores.py  cross-dataset score comparison
-[15] plot_temperature_scores.py   plots from step 13
-[16] attention_heatmap.py         patch attention visualisation
+saliency/10_prism2_saliency.py          <slide>.h5 + <slide>.png  (base or yes/no target)
+saliency/11_prism2_saliency_uamp.py     <slide>/<uamp_term>.h5 + .png  (all 11 terms)
+saliency/16_attention_heatmap.py        patch attention visualisation
+
+uncertainty/02_run_prism2_uamp_repeat5.py         reproducibility_stats.csv
+uncertainty/03_run_prism2_confidence_rating.py    confidence_rating.csv
+uncertainty/13_run_prism2_temperature_sampling.py temperature sampling study
+uncertainty/19_run_prism2_multiple_choice.py      MC scoring
+uncertainty/20_run_prism2_multi_feature.py        10-way multi-feature scoring
+uncertainty/21_run_prism2_severity.py             severity scoring
+uncertainty/22_run_prism2_question_robustness.py  linguistic robustness
+
+compare/12_compare_tissue_filter.py               no_filter vs filtered
+compare/14_compare_histological_scores.py         cross-dataset UAMP comparison
 ```
 
-Steps 01 and 04 are independent and can run in parallel. Steps 02 and 03 are optional reproducibility/confidence studies.
+`scoring/01` and `scoring/04` are independent and can run in parallel. Scripts in `uncertainty/` are optional reproducibility studies.
 
 ---
 
@@ -68,7 +120,7 @@ Scores 11 UAMP histological terms per slide using PRISM2 `yes_no_score()`. Resum
 
 ```bash
 conda activate prism2
-python 01_run_prism2_uamp.py \
+python scoring/01_run_prism2_uamp.py \
     --feat_dir PATH         # default: trident_processed/features_virchow2
     --results_root PATH     # default: results/prism2_manual_knn/
     [--batch_size 4]        # slides per forward pass
@@ -77,7 +129,7 @@ python 01_run_prism2_uamp.py \
 
 **Example for manual_knn dataset:**
 ```bash
-python 01_run_prism2_uamp.py \
+python scoring/01_run_prism2_uamp.py \
     --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2 \
     --results_root /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn
 ```
@@ -94,7 +146,7 @@ Runs UAMP scoring N times on the same dataset to estimate run-to-run variance.
 
 ```bash
 conda activate prism2
-python 02_run_prism2_uamp_repeat5.py \
+python uncertainty/02_run_prism2_uamp_repeat5.py \
     --feat_dir PATH         # default: no_darkspot/features_virchow2
     --out_dir PATH          # default: results/prism2_no_darkspot/repeat_five_times/
     [--n_runs 5]
@@ -112,7 +164,7 @@ Uses stochastic free-text generation (`do_sample=True`) to ask PRISM2 to output 
 
 ```bash
 conda activate prism2
-python 03_run_prism2_confidence_rating.py \
+python uncertainty/03_run_prism2_confidence_rating.py \
     --feat_dir PATH
     --out_dir PATH          # default: results/.../confidence_rating/
     [--n_runs 5]
@@ -132,7 +184,7 @@ Generates a natural-language pathology report for every slide. Safe to interrupt
 
 ```bash
 conda activate prism2
-python 04_run_prism2_reports.py \
+python scoring/04_run_prism2_reports.py \
     --feat_dir PATH         # default: trident_processed/features_virchow2
     --results_root PATH     # default: results/prism2_manual_knn/
     [--prompt "Write a report"]
@@ -157,7 +209,7 @@ Runs PCA → UMAP on PRISM2 base and/or diagnostic embeddings and saves interact
 
 ```bash
 conda activate trident
-python 05_umap_embeddings.py \
+python umap/05_umap_embeddings.py \
     [--job_dir PATH]        # TRIDENT job dir; default: trident_processed
     [--out_dir PATH]        # default: <job_dir>/../../results/prism2_manual_knn/umap/
     [--embeddings prism2_base prism2_diagnostic]
@@ -167,7 +219,7 @@ python 05_umap_embeddings.py \
 
 **Example for manual_knn:**
 ```bash
-python 05_umap_embeddings.py \
+python umap/05_umap_embeddings.py \
     --job_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn \
     --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap
 ```
@@ -185,7 +237,7 @@ python 05_umap_embeddings.py \
 
 ```bash
 conda activate trident
-python 06_umap_uamp_scores.py \
+python umap/06_umap_uamp_scores.py \
     --uamp_csv PATH         # prism2_histological_score.csv
     --coords_npz PATH [PATH ...]  # one or more *_coords.npz files
     --out_dir PATH
@@ -194,7 +246,7 @@ python 06_umap_uamp_scores.py \
 
 **Example:**
 ```bash
-python 06_umap_uamp_scores.py \
+python umap/06_umap_uamp_scores.py \
     --uamp_csv results/prism2_manual_knn/prism2_histological_score.csv \
     --coords_npz results/prism2_manual_knn/umap/umap_prism2_base_coords.npz \
                  results/prism2_manual_knn/umap/umap_prism2_diagnostic_coords.npz \
@@ -213,7 +265,7 @@ No CLI args. Reads hardcoded paths — edit the `DATA_ROOT` constants at the top
 
 ```bash
 conda activate trident
-python 07_umap_reports.py
+python umap/07_umap_reports.py
 ```
 
 **Requires:** Steps 04, 05, and 06 to have completed.
@@ -231,7 +283,7 @@ python 07_umap_reports.py
 
 ```bash
 conda activate trident
-python 08_umap_patch_viewer.py \
+python umap/08_umap_patch_viewer.py \
     [--feat_dir PATH]
     [--slides SLIDE1 SLIDE2 ...]
     [--n_slides 5]
@@ -248,7 +300,7 @@ Combined patch-level UMAP across all slides. Also used for manual KNN curation i
 
 ```bash
 conda activate trident
-python 09_multi_slide_umap.py \
+python umap/09_multi_slide_umap.py \
     [--feat_dir PATH]
     [--max_patches 10000]
     [--n_slides N]
@@ -264,12 +316,12 @@ python 09_multi_slide_umap.py \
 ```bash
 conda activate prism2
 # Base target:
-python 10_prism2_saliency.py --slide SLIDE_STEM --target base [--gpu 0]
+python saliency/10_prism2_saliency.py --slide SLIDE_STEM --target base [--gpu 0]
 # Yes/no target:
-python 10_prism2_saliency.py --slide SLIDE_STEM --target yesno \
+python saliency/10_prism2_saliency.py --slide SLIDE_STEM --target yesno \
     --question "Is there active inflammation?" [--gpu 0]
 # All slides:
-python 10_prism2_saliency.py --all --target base [--gpu 0]
+python saliency/10_prism2_saliency.py --all --target base [--gpu 0]
 ```
 
 **Output:** `prism2_saliency_<target>/<slide>.h5` + `<slide>.png`
@@ -280,10 +332,10 @@ python 10_prism2_saliency.py --all --target base [--gpu 0]
 
 ```bash
 conda activate prism2
-python 11_prism2_saliency_uamp.py --slide SLIDE_STEM [--gpu 0]
+python saliency/11_prism2_saliency_uamp.py --slide SLIDE_STEM [--gpu 0]
 # Or split into two passes:
-python 11_prism2_saliency_uamp.py --slide SLIDE_STEM --compute-only [--gpu 0]
-python 11_prism2_saliency_uamp.py --slide SLIDE_STEM --viz-only
+python saliency/11_prism2_saliency_uamp.py --slide SLIDE_STEM --compute-only [--gpu 0]
+python saliency/11_prism2_saliency_uamp.py --slide SLIDE_STEM --viz-only
 ```
 
 **Output:** `prism2_saliency_uamp/<slide>/<term>.h5` + `<term>.png` per UAMP term
@@ -296,7 +348,7 @@ Post-hoc: compares unfiltered vs `tissue_threshold_15_filtered`. Edit `DATA_ROOT
 
 ```bash
 conda activate trident
-python 12_compare_tissue_filter.py
+python compare/12_compare_tissue_filter.py
 ```
 
 **Output** (under `results/comparison_no_filter_vs_filtered/`): comparison CSVs + `comparison_report.html`

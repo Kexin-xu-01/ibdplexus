@@ -29,7 +29,7 @@ spec:
               set -e
               pip install numpy pandas matplotlib scikit-learn umap-learn plotly \
                 --quiet --no-cache-dir
-              python /home/jovyan/ibdplexus/code/training/cd_vs_uc/umap_rna.py
+              python /home/jovyan/ibdplexus/code/training/cd_vs_uc/_deprecated/umap_rna.py
           resources:
             requests:
               cpu: "1"

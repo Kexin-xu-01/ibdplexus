@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kgbk271-prism2-temp-sampling-t15-nodarkspot
+  name: kgbk271-patch-viewer-tissue-threshold-15
   namespace: ibd-plexus-research
 spec:
   backoffLimit: 1
@@ -29,28 +29,45 @@ spec:
             medium: Memory
             sizeLimit: 16Gi
       containers:
-        - name: prism2
+        - name: patch-viewer-tissue-threshold-15
           image: harbor.csis.astrazeneca.net/azimuth-demo/cpu-codeserver:latest
           command:
             - /bin/bash
             - -c
             - |
-              /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/17_run_prism2_temperature_sampling.py \
-                --temperature 2.0 \
-                --n_samples 50 \
-                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot/20x_224px_0px_overlap/features_virchow2 \
-                --out_dir /home/jovyan/kgbk271-ibd-volume/results/prism2_tissue_threshold_15_filtered_no_darkspot/temperature_sampling \
-                --gpu 0 \
-                --batch_size 4 \
-                --skip_errors
+              set -euo pipefail
+
+              PYTHON=/home/jovyan/kgbk271-ibd-volume/envs/trident/bin/python
+              VOL=/home/jovyan/kgbk271-ibd-volume/results
+
+              echo "=== Migrate /home/jovyan/results → volume ==="
+
+              # umap report PNGs/PDFs/HTML (newer versions from Aug 4)
+              cp -f /home/jovyan/results/umap/umap_prism2_diagnostic_report_*.pdf \
+                    /home/jovyan/results/umap/umap_prism2_diagnostic_report_*.png \
+                    /home/jovyan/results/umap/umap_prism2_diagnostic_reports.html \
+                    "$VOL/prism2/umap/"
+
+              # umap_patch_viewer (new location)
+              mkdir -p "$VOL/umap_patch_viewer"
+              cp -n /home/jovyan/results/umap_patch_viewer/*.html "$VOL/umap_patch_viewer/"
+
+              echo "Migration done."
+
+              echo "=== Patch viewer: tissue_threshold_15 (same 5 slides) ==="
+              $PYTHON /home/jovyan/ibdplexus/code/prism2/umap/08_umap_patch_viewer.py \
+                --feat_dir /home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15/20x_224px_0px_overlap/features_virchow2 \
+                --slides 10407210HE1 10407218HE1 10407219HE1 10407220HE1 10407267HE1 \
+                --out_dir "$VOL/umap_patch_viewer/tissue_threshold_15"
+
+              echo "=== Done ==="
           resources:
             requests:
-              cpu: "8"
+              cpu: "4"
               memory: 32Gi
               nvidia.com/gpu: "1"
             limits:
-              cpu: "8"
+              cpu: "4"
               memory: 32Gi
               nvidia.com/gpu: "1"
           env:
@@ -60,19 +77,7 @@ spec:
               value: "http://azpse.astrazeneca.net:9480"
             - name: no_proxy
               value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,astrazeneca.net,::1,10.0.0.0/8,172.30.0.0/8,172.29.0.0/8"
-            - name: HF_HOME
-              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
-            - name: HF_HUB_CACHE
-              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
-            - name: TRANSFORMERS_CACHE
-              value: "/home/jovyan/kgbk271-ibd-volume/huggingface_cache"
             - name: HF_HUB_OFFLINE
-              value: "1"
-            - name: TRANSFORMERS_OFFLINE
-              value: "1"
-            - name: HF_DATASETS_OFFLINE
-              value: "1"
-            - name: PYTHONUNBUFFERED
               value: "1"
           volumeMounts:
             - name: dshm

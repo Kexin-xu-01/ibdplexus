@@ -36,7 +36,7 @@ spec:
             - -c
             - |
               /home/jovyan/kgbk271-ibd-volume/envs/prism2/bin/python \
-                /home/jovyan/ibdplexus/code/prism2/run_prism2_umap.py \
+                /home/jovyan/ibdplexus/code/prism2/scoring/01_run_prism2_uamp.py \
                 --gpu 0 \
                 --batch_size 4 \
                 --skip_errors
