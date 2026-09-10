@@ -229,7 +229,7 @@ python umap/05_umap_embeddings.py \
 - `umap_<embed>.pdf` — multi-page static PDF
 - `umap_<embed>_coords.npz` — coordinate cache for steps 06–07
 
-**K8s job:** `jobs/06_umap/job_umap_manual_knn.yaml`
+**K8s job:** `jobs/06_umap_slide_level/job_umap_manual_knn.yaml`
 
 ---
 
@@ -255,7 +255,7 @@ python umap/06_umap_uamp_scores.py \
 
 **Output:** `umap_scores_<embed_name>.html` per coords file
 
-**K8s job:** `jobs/06_umap/job_umap_scores_manual_knn.yaml`
+**K8s job:** `jobs/06_umap_slide_level/job_umap_scores_manual_knn.yaml`
 
 ---
 
@@ -275,7 +275,7 @@ python umap/07_umap_reports.py
 - Per-variable PNG + PDF
 - `results/metadata/slide_report_features.csv`
 
-**K8s job:** `jobs/06_umap/job_umap_reports.yaml`
+**K8s job:** `jobs/06_umap_slide_level/_deprecated/job_umap_reports.yaml`
 
 ---
 
@@ -381,14 +381,13 @@ jobs/
 │   └── _deprecated/
 ├── 03_confidence_rating/  # Confidence scoring (GPU) — script 03
 ├── 04_reports/        # Free-text report generation (GPU) — script 04
-├── 05_patch_viewer/   # Patch-level UMAP (CPU) — script 08
-├── 06_umap/           # Slide-level UMAP + overlays (CPU) — scripts 05, 06, 07
+├── 05_umap_patch_level/   # UMAP of patches within one slide (CPU) — umap/08_umap_patch_viewer.py
+├── 06_umap_slide_level/   # UMAP of slides across the cohort + UAMP overlays (CPU) — umap/05, umap/06, umap/07
 │   ├── job_umap_manual_knn.yaml
 │   ├── job_umap_scores_manual_knn.yaml
-│   ├── job_umap_reports.yaml
 │   └── _deprecated/
-├── 07_saliency/       # Saliency maps (GPU) — scripts 10, 11
-└── 08_temperature_sampling/  # Temperature sampling (GPU) — script 13
+├── 07_saliency/           # Saliency + attention maps (GPU) — saliency/10, saliency/11, saliency/16
+└── 08_uncertainty_estimation/  # Reproducibility, MC, temperature, severity, robustness (GPU) — uncertainty/*
 ```
 
 ### Standard run order for manual_knn
@@ -401,10 +400,10 @@ kubectl apply -f jobs/01_embeddings/job_prism2_embeddings_manual_knn.yaml
 kubectl apply -f jobs/02_uamp/job_prism2_umap_manual_knn.yaml
 
 # Step 3 — UMAP (CPU) — wait for step 1
-kubectl apply -f jobs/06_umap/job_umap_manual_knn.yaml
+kubectl apply -f jobs/06_umap_slide_level/job_umap_manual_knn.yaml
 
 # Step 4 — UAMP score overlays (CPU) — wait for steps 2 and 3
-kubectl apply -f jobs/06_umap/job_umap_scores_manual_knn.yaml
+kubectl apply -f jobs/06_umap_slide_level/job_umap_scores_manual_knn.yaml
 ```
 
 ---
