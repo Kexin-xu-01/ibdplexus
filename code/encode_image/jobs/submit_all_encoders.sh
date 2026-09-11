@@ -11,7 +11,7 @@
 #   feather        : conch_v15 auto-downloaded on first run (needs internet)
 #   feather_uni_v2 : uni_v2 auto-downloaded on first run (needs internet)
 #   care           : conch_v15 auto-downloaded on first run (needs internet)
-#   prism2         : run separately with code/prism2/job_prism2_embeddings.yaml
+#   prism2         : run separately with code/prism2/jobs/01_embeddings/job_prism2_embeddings_manual_knn.yaml
 #                    (requires shards 1-3 to be re-uploaded first)
 #
 # Models are cached to /home/jovyan/kgbk271-ibd-volume/hf_cache on first run.

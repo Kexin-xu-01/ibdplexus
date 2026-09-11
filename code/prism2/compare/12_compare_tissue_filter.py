@@ -34,17 +34,17 @@ BASE = Path("/home/jovyan/kgbk271-ibd-volume")
 BEFORE = dict(
     label="no_filter",
     rf_dir=BASE / "training/cd_vs_uc/02_04_imaging_allsites/results",
-    histoscore_csv=BASE / "results/prism2/prism2_histological_score.csv",
-    umap_base_npz=BASE / "results/prism2/umap/no_tissue_filter/umap_prism2_base_coords.npz",
-    umap_diag_npz=BASE / "results/prism2/umap/no_tissue_filter/umap_prism2_diagnostic_coords.npz",
+    histoscore_csv=BASE / "results/_deprecated/prism2_no_tissue_filter/prism2_histological_score.csv",
+    umap_base_npz=BASE / "results/_deprecated/prism2_no_tissue_filter/umap/no_tissue_filter/umap_prism2_base_coords.npz",
+    umap_diag_npz=BASE / "results/_deprecated/prism2_no_tissue_filter/umap/no_tissue_filter/umap_prism2_diagnostic_coords.npz",
 )
 
 AFTER = dict(
     label="tissue_threshold_15_filtered",
     rf_dir=BASE / "training/cd_vs_uc/tissue_threshold_15_filtered/results",
-    histoscore_csv=BASE / "results/prism2_tissue_threshold_15_filtered/prism2_histological_score.csv",
-    umap_base_npz=BASE / "results/prism2/umap/tissue_threshold_15_filtered/umap_prism2_base_coords.npz",
-    umap_diag_npz=BASE / "results/prism2/umap/tissue_threshold_15_filtered/umap_prism2_diagnostic_coords.npz",
+    histoscore_csv=BASE / "results/_deprecated/prism2_tissue_threshold_15_filtered/prism2_histological_score.csv",
+    umap_base_npz=BASE / "results/_deprecated/prism2_no_tissue_filter/umap/tissue_threshold_15_filtered/umap_prism2_base_coords.npz",
+    umap_diag_npz=BASE / "results/_deprecated/prism2_no_tissue_filter/umap/tissue_threshold_15_filtered/umap_prism2_diagnostic_coords.npz",
 )
 
 SLIDE_META = BASE / "results/metadata/slide_metadata.csv"

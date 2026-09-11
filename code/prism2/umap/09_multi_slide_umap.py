@@ -28,10 +28,10 @@ from PIL import Image
 from sklearn.decomposition import PCA
 from umap import UMAP
 
-FEAT_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15/20x_224px_0px_overlap/features_virchow2")
+FEAT_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2")
 TIFF_DIR = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
 META_CSV = Path("/home/jovyan/kgbk271-ibd-volume/metadata/omics_samples_metadata.csv")
-OUT_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/results/umap_patch_viewer/tissue_threshold_15")
+OUT_DIR  = Path("/home/jovyan/kgbk271-ibd-volume/results/prism2_manual_knn/umap_patch_viewer")
 
 PATCH_PX = 672  # patch footprint at full res
 PYRLEVEL = 1    # pyramid level (2× downsampled)

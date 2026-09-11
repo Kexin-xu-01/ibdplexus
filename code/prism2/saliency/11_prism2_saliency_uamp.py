@@ -22,10 +22,10 @@ from transformers import AutoModel, AutoProcessor
 VIRCHOW2_DIM    = 2560
 CLASS_TOKEN_DIM = 1280
 MODEL_PATH      = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
-FEAT_DIR        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/features_virchow2")
+FEAT_DIR        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/features_virchow2")
 THUMB_DIR       = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/visualization")
 WSI_DIR         = Path("/home/jovyan/kgbk271-ibd-volume/data/raw/tiff_mpp_corrected")
-OUT_ROOT        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/trident_processed/20x_224px_0px_overlap/prism2_saliency_umap")
+OUT_ROOT        = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/tissue_threshold_15_filtered_no_darkspot_manual_knn/20x_224px_0px_overlap/prism2_saliency_umap")
 
 PATCH_PX = 672   # level-0 patch size
 N_PATCHES = 8    # top patches per question

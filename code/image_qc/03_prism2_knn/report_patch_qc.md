@@ -15,7 +15,7 @@ Remove poor-quality patches (artefacts, pen marks, edge effects, staining failur
 
 ## Tools developed
 
-All scripts live in `code/image_qc/prism2_knn/`.
+All scripts live in `code/image_qc/03_prism2_knn/`.
 
 ### `multi_slide_umap.py`
 Builds a joint interactive HTML UMAP viewer across all slides.

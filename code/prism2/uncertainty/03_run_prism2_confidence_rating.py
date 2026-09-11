@@ -36,11 +36,11 @@ VIRCHOW2_DIM    = 2560
 CLASS_TOKEN_DIM = 1280
 
 FEAT_DIR   = Path("/home/jovyan/kgbk271-ibd-volume/data/processed/"
-                  "tissue_threshold_15_filtered_no_darkspot/"
+                  "tissue_threshold_15_filtered_no_darkspot_manual_knn/"
                   "20x_224px_0px_overlap/features_virchow2")
 MODEL_PATH = "/home/jovyan/shared-data/users/kexin/models/VLM/prism2"
 OUT_DIR    = Path("/home/jovyan/kgbk271-ibd-volume/results/"
-                  "prism2_tissue_threshold_15_filtered_no_darkspot/confidence_rating")
+                  "prism2_manual_knn/uncertainty_estimation/confidence_rating")
 
 UAMP_TERMS = [
     "Inflammation involvement",

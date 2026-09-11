@@ -33,7 +33,7 @@ Original pool (865,070)
 
 Patches with Laplacian variance below 100 are removed as too blurry to carry reliable morphological signal.  Laplacian variance measures the sharpness of a greyscale image; low values indicate out-of-focus or motion-blurred patches.
 
-**Script:** `code/image_qc/laplacien/filter_laplacien.py`  
+**Script:** `code/image_qc/01_laplacien/02_filter_laplacien.py`  
 **Threshold:** Laplacian variance < 100
 
 ### Stage 2 — Faint/white intensity filter
@@ -47,7 +47,7 @@ Patches with mean RGB intensity ≥ 211.8 (the 98th percentile across the cohort
 
 GrandQC (MPP 1.0 model) generates per-slide artefact masks with seven classes. Patches where more than 10% of the overlapping mask pixels are classified as dark spots (class 3) are removed.  Additionally, 8 slides with extreme dark-spot contamination (visually confirmed) are excluded entirely.
 
-**Script:** `code/image_qc/grandqc/filter_grandqc_darkspot.py`  
+**Script:** `code/image_qc/02_grandqc/02_filter_grandqc_darkspot.py`  
 **Threshold:** dark-spot fraction > 10%
 
 GrandQC class mapping:
@@ -84,11 +84,11 @@ Two iterations were performed:
 Of the 15,875 patches in the merged exclusion list, 9,334 were already removed by prior filters.  The net additional patches removed at this stage is **6,541**.
 
 **Scripts:**
-- `code/image_qc/prism2_knn/multi_slide_umap.py` — interactive UMAP viewer with lasso selection
-- `code/image_qc/prism2_knn/qc_find_nn.py` — full-pool NN search + interval gallery with per-patch threshold UI
-- `code/image_qc/prism2_knn/apply_knn_exclusion.py` — applies merged exclusion list to filtered H5 files
+- `code/image_qc/03_prism2_knn/01_multi_slide_umap.py` — interactive UMAP viewer with lasso selection
+- `code/image_qc/03_prism2_knn/02_qc_find_nn.py` — full-pool NN search + interval gallery with per-patch threshold UI
+- `code/image_qc/03_prism2_knn/03_apply_knn_exclusion.py` — applies merged exclusion list to filtered H5 files
 
-See `code/image_qc/prism2_knn/report_patch_qc.md` for full KNN pipeline detail.
+See `code/image_qc/03_prism2_knn/report_patch_qc.md` for full KNN pipeline detail.
 
 ---
 
@@ -171,12 +171,12 @@ To add a future exclusion round without rerunning all filters:
 
 ```bash
 # 1. Annotate new bad patches in the cleaned UMAP
-python code/image_qc/prism2_knn/multi_slide_umap.py \
+python code/image_qc/03_prism2_knn/01_multi_slide_umap.py \
     --exclusion_csv image_preprocessing/patch_qc/prism2_knn/exclusion_list_merged.csv \
     --out_name all_slides_umap_iter3.html
 
 # 2. Export bad patches, run NN search with per-patch thresholds
-python code/image_qc/prism2_knn/qc_find_nn.py \
+python code/image_qc/03_prism2_knn/02_qc_find_nn.py \
     --bad_csv bad_patches_iter3.csv \
     --dist_threshold 40 \
     --html_out nn_gallery_iter3.html \
@@ -193,7 +193,7 @@ print(f"Combined: {len(merged):,} patches excluded")
 EOF
 
 # 4. Apply to filtered features
-python code/image_qc/prism2_knn/apply_knn_exclusion.py \
+python code/image_qc/03_prism2_knn/03_apply_knn_exclusion.py \
     --excl_csv exclusion_list_merged_iter3.csv \
     --out_dir .../tissue_threshold_15_filtered_no_darkspot_manual_knn_iter3/...
 ```

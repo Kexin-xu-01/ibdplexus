@@ -501,7 +501,7 @@ def main():
     }
 
     out_dir = Path(args.out_dir) if args.out_dir else \
-              Path(args.job_dir).parent.parent / "results" / "prism2" / "umap" / Path(args.job_dir).name
+              Path(args.job_dir).parent.parent / "results" / "prism2_manual_knn" / "umap" / Path(args.job_dir).name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("Loading metadata ...")

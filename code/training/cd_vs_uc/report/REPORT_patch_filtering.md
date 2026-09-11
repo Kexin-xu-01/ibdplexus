@@ -181,8 +181,8 @@ Lap+intensity and no-darkspot scores are identical — consistent with the dark-
 | Script | Purpose |
 |---|---|
 | `code/prism2/make_filtered_features.py` | Build Lap+intensity filtered h5 files |
-| `code/image_qc/grandqc/run_grandqc.py` | GrandQC MPP1 inference |
-| `code/image_qc/grandqc/filter_grandqc_darkspot.py` | Dark-spots patch filter |
-| `code/training/cd_vs_uc/02_train_random_forest.py` | RF CV (accepts `--splits_csv`) |
-| `code/training/cd_vs_uc/08h_train_at20cm_mlp.py` | MLP multimodal CV |
-| `code/training/cd_vs_uc/compare_filter_conditions.py` | Comparison plots |
+| `code/image_qc/02_grandqc/01_run_grandqc.py` | GrandQC MPP1 inference |
+| `code/image_qc/02_grandqc/02_filter_grandqc_darkspot.py` | Dark-spots patch filter |
+| `code/training/cd_vs_uc/train_rf.py` | RF CV (accepts `--splits_csv`) |
+| `code/training/cd_vs_uc/train_mlp.py` | MLP multimodal CV |
+| `code/training/cd_vs_uc/_deprecated/image/12b_compare_filter_conditions.py` | Comparison plots |

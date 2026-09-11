@@ -29,7 +29,8 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 CSV_PATH = Path(
     "/home/jovyan/kgbk271-ibd-volume/results/"
-    "prism2_manual_knn/temperature_sampling/prism2_temperature_scores.csv"
+    "prism2_manual_knn/uncertainty_estimation/temperature_sampling/"
+    "prism2_temperature_scores.csv"
 )
 OUT_DIR = CSV_PATH.parent
 
